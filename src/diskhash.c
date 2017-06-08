@@ -128,9 +128,12 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags) {
             return NULL;
         }
     }
+    const int prot = (flags == O_RDONLY) ?
+                                PROT_READ
+                                : PROT_READ|PROT_WRITE;
     rp->data_ = mmap(NULL, 
             rp->datasize_,
-            PROT_READ|PROT_WRITE,
+            prot,
             MAP_SHARED,
             rp->fd_,
             0);
