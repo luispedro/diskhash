@@ -9,8 +9,8 @@ typedef struct HashTableOpts {
 
 typedef struct HashTableHeader {
     HashTableOpts opts_;
-    int cursize_;
-    int slots_used_;
+    size_t cursize_;
+    size_t slots_used_;
 } HashTableHeader;
 
 typedef struct HashTable {
