@@ -159,7 +159,7 @@ void dht_free(HashTable* ht) {
     free(ht);
 }
 
-char random_char() {
+char random_char(void) {
     const char* available =
         "0123456789"
         "abcdefghijklmnopqrstuvwxyz"
