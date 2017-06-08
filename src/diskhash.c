@@ -278,24 +278,32 @@ HashTableEntry dht_lookup(const HashTable* ht, const char* key) {
 
 int dht_insert(HashTable* ht, const char* key, const void* data) {
     if (strlen(key) + 1 >= header_of(ht)->opts_.key_maxlen) {
-        return 0;
+        return -1;
     }
     /* Max load is 50% */
     if (cheader_of(ht)->cursize_ / 2 < cheader_of(ht)->slots_used_) {
         if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1)) return 0;
     }
     int h = hash_key(key) % cheader_of(ht)->cursize_;
-    int i = 0;
-    while (!entry_empty(entry_at(ht, h + i))) {
-        i++;
+    while (1) {
+        HashTableEntry et = entry_at(ht, h);
+        if (entry_empty(et)) break;
+        if (!strcmp(et.ht_key, key)) {
+            return 0;
+        }
+        ++h;
+        if (h == cheader_of(ht)->cursize_) {
+            h = 0;
+        }
     }
     uint64_t* table = hashtable_of(ht);
-    table[h + i] = header_of(ht)->slots_used_ + 1;
+    table[h] = header_of(ht)->slots_used_ + 1;
     ++header_of(ht)->slots_used_;
+    HashTableEntry et = entry_at(ht, h);
 
-    HashTableEntry et = entry_at(ht, h + i);
     strcpy((char*)et.ht_key, key);
     memcpy(et.ht_data, data, cheader_of(ht)->opts_.object_datalen);
+
     return 1;
 }
 

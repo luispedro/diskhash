@@ -25,13 +25,76 @@ typedef struct HashTableEntry {
     void* ht_data;
 } HashTableEntry;
 
+/** Open a hash table file
+ *
+ * fpath is the file path
+ * flags are passed to call to open() and the user should read the documentation therein
+ *
+ * Values returned from dht_open must be freed with dht_free.
+ *
+ * Examples:
+ *
+ * Read-write:
+ *
+ *      HashTableOpts opts;
+ *      opts.key_maxlen = 15;
+ *      opts.object_datalen = 8;
+ *      HashTable* ht = dht_open("hashtable.dht", opts, O_RDWR|O_CREAT);
+ *
+ * Read-only:
+ *
+ *      HashTable* ht = dht_open("hashtable.dht", opts, O_RDONLY);
+ */
 HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags);
+
+/** Lookup a key
+ *
+ * The memory returned for the ht_data object can be written to (the hash table
+ * itself does not inspect the values in any way).
+ *
+ * Thread safety: multiple concurrent reads are perfectly safe. No guarantees
+ * are given whenever writing is performed. Similarly, if you write to the
+ * output of this function (the ht_data field), no guarantees are given.
+ */
 HashTableEntry dht_lookup(const HashTable*, const char* key);
+
+/** Insert a value.
+ *
+ * The hashtable must be opened in read write mode.
+ *
+ * If a value with the given key is already present in the table, then no
+ * action is performed and 0 is returned. If you want to overwrite that value,
+ * you can use `dht_lookup` and write to its output.
+ *
+ * This operation is typically O(1) amortized. However, if table is at capacity
+ * when dht_insert is called, then it must be grown which can be a
+ * time-consuming operation as all the values are copied to the newly allocated
+ * memory block (see dht_reserve).
+ *
+ * Returns 1 if the value was inserted.
+ *         0 if the key was already present in the table. The hash table was
+ *         not modified.
+ *         -1 if there was an error. Errors can occur if table expansion is
+ *         needed and memory cannot be allocated.
+ */
 int dht_insert(HashTable*, const char* key, const void* data);
 
+/** Preallocate memory for the table.
+ *
+ * Calling this function if the number of elements is known apriori can improve
+ * performance. Additionally, if capacity exists, then dht_insert never fails.
+ *
+ * This function returns the actual capacity allocated (which may be more than
+ * requested, but never less). Calling dht_reserve asking for _less_ capacity
+ * than is currently used is a no-op.
+ */
 size_t dht_reserve(HashTable*, size_t capacity);
+
+/** Free the hashtable and sync to disk.
+ */
 void dht_free(HashTable*);
 
+/** For debug use only */
 void show_ht(const HashTable*);
 
 #ifdef __cplusplus
