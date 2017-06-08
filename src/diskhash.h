@@ -1,6 +1,9 @@
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 typedef struct HashTableOpts {
     size_t key_maxlen;
@@ -81,6 +84,9 @@ int dht_insert(HashTable*, const char* key, const void* data);
  * This function returns the actual capacity allocated (which may be more than
  * requested, but never less). Calling dht_reserve asking for _less_ capacity
  * than is currently used is a no-op.
+ *
+ * If capacity cannot be allocated, this function returns 0 (but no changes to
+ * the hash table are made).
  */
 size_t dht_reserve(HashTable*, size_t capacity);
 

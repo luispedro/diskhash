@@ -1,0 +1,28 @@
+name:               diskhash
+version:            0.0.1.0
+synopsis:           Disk-based hash table
+description:        Disk-based hash table
+category:           Data
+author:             Luis Pedro Coelho
+maintainer:         Luis Pedro Coelho
+license:            MIT
+license-file:       COPYING
+cabal-version:      >= 1.10
+build-type:         Simple
+bug-reports:        https://github.com/luispedro/diskhash/issues
+extra-source-files: README.md ChangeLog
+
+library
+  default-language: Haskell2010
+  exposed-modules: Data.DiskHash
+  hs-source-dirs: haskell/
+  C-sources: haskell/Data/diskhash2.c src/diskhash.c
+  Include-dirs: src/
+  ghc-options: -Wall
+  build-depends:
+    base > 4 && < 5,
+    bytestring
+
+source-repository head
+  type: git
+  location: https://github.com/luispedro/safeio
