@@ -4,8 +4,6 @@
 
 #include <Python.h>
 
-#include <stdio.h>
-
 #include "../../src/diskhash.h"
 
 typedef struct {
@@ -59,7 +57,6 @@ static PyMethodDef htMethods[] = {
 
 static PyObject *
 htNew(PyTypeObject *type, PyObject * args, PyObject * kwargs) {
-    fprintf(stderr, "New\n");
     htObject *self;
 
     self = (htObject *)type->tp_alloc(type, 0);
@@ -72,16 +69,13 @@ htNew(PyTypeObject *type, PyObject * args, PyObject * kwargs) {
 
 static int
 htInit(htObject *self, PyObject *args, PyObject *kwds) {
-
     const char* fpath;
     const char* mode;
     int maxi;
-    fprintf(stderr, "Init\n");
     if (!PyArg_ParseTuple(args, "sis", &fpath, &maxi, &mode)) {
         return -1;
     }
 
-    fprintf(stderr, "Init ( %s , %d)\n", fpath, maxi);
     HashTableOpts opts;
     opts.key_maxlen = maxi;
     opts.object_datalen = 8;
@@ -93,7 +87,6 @@ htInit(htObject *self, PyObject *args, PyObject *kwds) {
 
 static void
 htDealloc(htObject* ht) {
-    fprintf(stderr, "DEL\n");
     if (ht->ht) dht_free(ht->ht);
 }
 
