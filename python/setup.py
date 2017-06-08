@@ -32,9 +32,6 @@ On linux, the package is often called python-setuptools''')
     exit(1)
 import os
 
-import shlib # adds build_shlib and install_shlib to the distutils command set
-from shlib import build_shlib
-
 exec(compile(open('diskhash/diskhash_version.py').read(),
              'diskhash/diskhash_version.py', 'exec'))
 
@@ -81,9 +78,6 @@ setuptools.setup(name = 'diskhash',
       classifiers = classifiers,
       url = 'http://github.com/luispedro/diskhash',
       packages = packages,
-      cmdclass = {
-          "build_shlib": build_shlib.build_shlib,
-          },
-      shlibs = [build_shlib.SharedLibrary('dht', sources=['diskhash/diskhash.c'] )],
+      ext_modules = [setuptools.Extension('diskhash._diskhash', sources=['diskhash/_diskhash.c', '../src/diskhash.c'])],
       )
 

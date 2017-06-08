@@ -1,1 +1,1 @@
-from .diskhash import DiskStr2Int
+from ._diskhash import Str2int
