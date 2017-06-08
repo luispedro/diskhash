@@ -19,12 +19,12 @@ PyObject* htLookup(htObject* self, PyObject* args) {
     if (!PyArg_ParseTuple(args, "s", &k)) {
         return NULL;
     }
-    HashTableEntry he = dht_lookup(self->ht, k);
-    if (!he.ht_key) {
+    void* data = dht_lookup(self->ht, k);
+    if (!data) {
         Py_RETURN_NONE;
     }
     long long r;
-    memcpy(&r, he.ht_data, sizeof(r));
+    memcpy(&r, data, sizeof(r));
     return PyLong_FromLong(r);
 }
 PyObject* htReserve(htObject* self, PyObject* args) {

@@ -10,8 +10,7 @@
 
 typedef int64_t data_t;
 int dht_ismember(HashTable* ht, const char* k) {
-    HashTableEntry et = dht_lookup(ht, k);
-    return et.ht_key != NULL;
+    return dht_lookup(ht, k) != NULL;
 }
 
 void chomp(char* p) {
@@ -24,9 +23,9 @@ void chomp(char* p) {
 }
 
 data_t dht_lookup_data_or(HashTable* ht, const char* k, data_t def) {
-    HashTableEntry et = dht_lookup(ht, k);
-    if (!et.ht_data) return def;
-    memcpy(&def, et.ht_data, sizeof(def));
+    void* data = dht_lookup(ht, k);
+    if (!data) return def;
+    memcpy(&def, data, sizeof(def));
     return def;
 }
 int main() {

@@ -15,6 +15,18 @@
 #include "diskhash.h"
 #include "primes.h"
 
+
+typedef struct HashTableHeader {
+    HashTableOpts opts_;
+    size_t cursize_;
+    size_t slots_used_;
+} HashTableHeader;
+
+typedef struct HashTableEntry {
+    const char* ht_key;
+    void* ht_data;
+} HashTableEntry;
+
 static
 uint64_t hash_key(const char* k) {
     /* Taken from http://www.cse.yorku.ca/~oz/hash.html */
@@ -262,18 +274,17 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
     return cap;
 }
 
-HashTableEntry dht_lookup(const HashTable* ht, const char* key) {
+void* dht_lookup(const HashTable* ht, const char* key) {
     int h = hash_key(key) % cheader_of(ht)->cursize_;
     for (int i = 0; i < cheader_of(ht)->cursize_; ++i) {
         HashTableEntry et = entry_at(ht, h);
-        if (!et.ht_key || !strcmp(et.ht_key, key)) return et;
+        if (!et.ht_key) return NULL;
+        if (!strcmp(et.ht_key, key)) return et.ht_data;
         ++h;
         if (h == cheader_of(ht)->cursize_) h = 0;
     }
-    HashTableEntry et;
-    et.ht_key = 0;
-    et.ht_data = 0;
-    return et;
+    fprintf(stderr, "dht_lookup: the code should never have reached this line.\n");
+    return NULL;
 }
 
 int dht_insert(HashTable* ht, const char* key, const void* data) {

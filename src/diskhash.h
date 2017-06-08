@@ -7,12 +7,6 @@ typedef struct HashTableOpts {
     size_t object_datalen;
 } HashTableOpts;
 
-typedef struct HashTableHeader {
-    HashTableOpts opts_;
-    size_t cursize_;
-    size_t slots_used_;
-} HashTableHeader;
-
 typedef struct HashTable {
     int fd_;
     const char* fname_;
@@ -20,10 +14,6 @@ typedef struct HashTable {
     size_t datasize_;
 } HashTable;
 
-typedef struct HashTableEntry {
-    const char* ht_key;
-    void* ht_data;
-} HashTableEntry;
 
 /** Open a hash table file
  *
@@ -47,16 +37,20 @@ typedef struct HashTableEntry {
  */
 HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags);
 
-/** Lookup a key
+/** Lookup a value by key
  *
- * The memory returned for the ht_data object can be written to (the hash table
- * itself does not inspect the values in any way).
+ * If the hash table was opened in read-write mode, then the memory returned
+ * can be written to (the hash table itself does not inspect the values in any
+ * way). Writing to a read-only hashtable will probably trigger a segmentation
+ * fault.
+ *
+ * If the object is not found, returns NULL.
  *
  * Thread safety: multiple concurrent reads are perfectly safe. No guarantees
  * are given whenever writing is performed. Similarly, if you write to the
  * output of this function (the ht_data field), no guarantees are given.
  */
-HashTableEntry dht_lookup(const HashTable*, const char* key);
+void* dht_lookup(const HashTable*, const char* key);
 
 /** Insert a value.
  *
