@@ -26,11 +26,11 @@ PyObject* htLookup(htObject* self, PyObject* args) {
     return PyLong_FromLong(r);
 }
 PyObject* htReserve(htObject* self, PyObject* args) {
-    long c;
-    if (!PyArg_ParseTuple(args, "i", &c)) {
+    int cap;
+    if (!PyArg_ParseTuple(args, "i", &cap)) {
         return NULL;
     }
-    long r = dht_reserve(self->ht, r);
+    long r = dht_reserve(self->ht, cap);
     return PyLong_FromLong(r);
 }
 
