@@ -204,7 +204,8 @@ char* generate_tempname_from(const char* base) {
     char* p = res;
     while (*p) ++p;
     *p++ = '.';
-    for (int i = 0; i < 19; ++i) {
+    int i;
+    for (i = 0; i < 19; ++i) {
         *p++ = random_char();
     }
     *p = 0;
@@ -293,7 +294,8 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
 
 void* dht_lookup(const HashTable* ht, const char* key) {
     int h = hash_key(key) % cheader_of(ht)->cursize_;
-    for (int i = 0; i < cheader_of(ht)->cursize_; ++i) {
+    int i;
+    for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
         HashTableEntry et = entry_at(ht, h);
         if (!et.ht_key) return NULL;
         if (!strcmp(et.ht_key, key)) return et.ht_data;
