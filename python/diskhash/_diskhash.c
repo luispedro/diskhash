@@ -31,6 +31,12 @@ PyObject* htReserve(htObject* self, PyObject* args) {
         return NULL;
     }
     long r = dht_reserve(self->ht, cap);
+    if (r == 0) {
+        const char* err = dht_geterror();
+        if (!err) err = "Error in dht_reserve.";
+        PyErr_SetString(PyExc_RuntimeError, err);
+        return NULL;
+    }
     return PyLong_FromLong(r);
 }
 

@@ -16,6 +16,7 @@
 #include "primes.h"
 
 static const char* last_error = NULL;
+static char errorbuf[512];
 const char* dht_geterror(void) {
     return last_error;
 }
@@ -255,7 +256,8 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
             temp_ht->fd_,
             0);
     if (temp_ht->data_ == MAP_FAILED) {
-        last_error = "Could not mmap().";
+        snprintf(errorbuf, sizeof(errorbuf), "Could not mmap() new hashtable: %s.\n", strerror(errno));
+        last_error = errorbuf;
         close(temp_ht->fd_);
         unlink(temp_ht->fname_);
         free((char*)temp_ht->fname_);
