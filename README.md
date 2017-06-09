@@ -30,7 +30,7 @@ int main(void) {
     opts.object_datalen = sizeof(int64_t);
     HashTable* ht = dht_open("testing.dht", opts, O_RDWR|O_CREAT);
     if (!ht) {
-        fprintf(stderr, "Failed opening hash table.\n");
+        fprintf(stderr, "Failed opening hash table: %s.\n", dht_geterror());
         return 1;
     }
     long i = 9;
