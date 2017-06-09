@@ -2,3 +2,4 @@
 /dist/
 /diskhash.egg-info/
 __pycache__/
+/.cache/
