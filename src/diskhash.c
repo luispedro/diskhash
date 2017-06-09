@@ -60,6 +60,10 @@ const HashTableHeader* cheader_of(const HashTable* ht) {
     return (const HashTableHeader*)ht->data_;
 }
 
+inline static
+int is_64bit(const HashTable* ht) {
+    return cheader_of(ht)->cursize_ > (1L << 32);
+}
 
 inline static
 size_t node_size_opts(HashTableOpts opts) {
@@ -76,14 +80,31 @@ int entry_empty(const HashTableEntry et) {
     return !et.ht_key;
 }
 
-inline static
-uint64_t* hashtable_of(HashTable* ht) {
-    return (uint64_t*)( (unsigned char*)ht->data_ + sizeof(HashTableHeader));
+void* hashtable_of(HashTable* ht) {
+    return (unsigned char*)ht->data_ + sizeof(HashTableHeader);
 }
 
-inline static
-const uint64_t* chashtable_of(const HashTable* ht) {
-    return hashtable_of((HashTable*)ht);
+
+static
+uint64_t get_table_at(const HashTable* ht, uint64_t ix) {
+    if (is_64bit(ht)) {
+        uint64_t* table = (uint64_t*)hashtable_of((HashTable*)ht);
+        return table[ix];
+    } else {
+        uint32_t* table = (uint32_t*)hashtable_of((HashTable*)ht);
+        return table[ix];
+    }
+}
+
+static
+void set_table_at(HashTable* ht, uint64_t ix, const uint64_t val) {
+    if (is_64bit(ht)) {
+        uint64_t* table = (uint64_t*)hashtable_of(ht);
+        table[ix] = val;
+    } else {
+        uint32_t* table = (uint32_t*)hashtable_of(ht);
+        table[ix] = val;
+    }
 }
 
 void show_ht(const HashTable* ht) {
@@ -91,25 +112,25 @@ void show_ht(const HashTable* ht) {
 
     int i;
     for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
-        fprintf(stderr, "\tTable [ %d ] = %d\n",(int)i, (int)chashtable_of(ht)[i]);
+        fprintf(stderr, "\tTable [ %d ] = %d\n",(int)i, (int)get_table_at(ht, i));
     }
     fprintf(stderr, "}\n");
 }
 
 static
 HashTableEntry entry_at(const HashTable* ht, size_t ix) {
-    const uint64_t* table = chashtable_of(ht);
+    ix = get_table_at(ht, ix);
     HashTableEntry r;
-    ix = table[ix];
     if (ix == 0) {
         r.ht_key = 0;
         r.ht_data = 0;
         return r;
     }
     --ix;
+    const size_t sizeof_table_elem = is_64bit(ht) ? sizeof(uint64_t) : sizeof(uint32_t);
     const char* node_data = (const char*)ht->data_
                             + sizeof(HashTableHeader)
-                            + cheader_of(ht)->cursize_ * sizeof(uint64_t);
+                            + cheader_of(ht)->cursize_ * sizeof_table_elem;
     r.ht_key = node_data + ix * node_size(ht);
     r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen) );
     return r;
@@ -141,7 +162,7 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags) {
     rp->datasize_ = st.st_size;
     if (rp->datasize_ == 0) {
         needs_init = 1;
-        rp->datasize_ = sizeof(HashTableHeader) + 7 * sizeof(uint64_t) + 3 * node_size_opts(opts);
+        rp->datasize_ = sizeof(HashTableHeader) + 7 * sizeof(uint32_t) + 3 * node_size_opts(opts);
         if (ftruncate(fd, rp->datasize_) < 0) {
             last_error = "could not allocate disk space.";
             close(rp->fd_);
@@ -228,7 +249,8 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
     while (primes[i] && primes[i] < min_slots) ++i;
     const int n = primes[i];
     cap = n / 2;
-    const size_t total_size = sizeof(HashTableHeader) + n * sizeof(uint64_t) + cap * node_size(ht);
+    const size_t sizeof_table_elem = is_64bit(ht) ? sizeof(uint64_t) : sizeof(uint32_t);
+    const size_t total_size = sizeof(HashTableHeader) + n * sizeof_table_elem + cap * node_size(ht);
 
     HashTable* temp_ht = malloc(sizeof(HashTable));
     while (1) {
@@ -268,10 +290,9 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
     header_of(temp_ht)->cursize_ = n;
     header_of(temp_ht)->slots_used_ = 0;
 
-    uint64_t* table = hashtable_of(ht);
     HashTableEntry et;
     for (i = 0; i < header_of(ht)->slots_used_; ++i) {
-        table[0] = i + 1;
+        set_table_at(ht, 0, i + 1);
         et = entry_at(ht, 0);
         dht_insert(temp_ht, et.ht_key, et.ht_data);
     }
@@ -337,8 +358,7 @@ int dht_insert(HashTable* ht, const char* key, const void* data) {
             h = 0;
         }
     }
-    uint64_t* table = hashtable_of(ht);
-    table[h] = header_of(ht)->slots_used_ + 1;
+    set_table_at(ht, h, header_of(ht)->slots_used_ + 1);
     ++header_of(ht)->slots_used_;
     HashTableEntry et = entry_at(ht, h);
 
