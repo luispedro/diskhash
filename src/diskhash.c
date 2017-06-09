@@ -292,7 +292,7 @@ int dht_insert(HashTable* ht, const char* key, const void* data) {
         return -1;
     }
     /* Max load is 50% */
-    if (cheader_of(ht)->cursize_ / 2 < cheader_of(ht)->slots_used_) {
+    if (cheader_of(ht)->cursize_ / 2 <= cheader_of(ht)->slots_used_) {
         if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1)) return 0;
     }
     int h = hash_key(key) % cheader_of(ht)->cursize_;
