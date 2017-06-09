@@ -254,7 +254,7 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
         free(temp_ht);
         return 0;
     }
-    memcpy(&header_of(temp_ht)->opts_, &header_of(ht)->opts_, sizeof(HashTableHeader));
+    memcpy(header_of(temp_ht), header_of(ht), sizeof(HashTableHeader));
     header_of(temp_ht)->cursize_ = n;
     header_of(temp_ht)->slots_used_ = 0;
 
