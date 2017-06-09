@@ -97,6 +97,8 @@ void dht_free(HashTable*);
 /** For debug use only */
 void show_ht(const HashTable*);
 
+const char* dht_geterror(void);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

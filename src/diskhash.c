@@ -15,8 +15,13 @@
 #include "diskhash.h"
 #include "primes.h"
 
+static const char* last_error = NULL;
+const char* dht_geterror(void) {
+    return last_error;
+}
 
 typedef struct HashTableHeader {
+    char magic[16];
     HashTableOpts opts_;
     size_t cursize_;
     size_t slots_used_;
@@ -156,9 +161,21 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags) {
         return NULL;
     }
     if (needs_init) {
+        strcpy(header_of(rp)->magic, "DiskBasedHash10");
         header_of(rp)->opts_ = opts;
         header_of(rp)->cursize_ = 7;
         header_of(rp)->slots_used_ = 0;
+    } else if (strcmp(header_of(rp)->magic, "DiskBasedHash10")) {
+        char start[16];
+        strncpy(start, header_of(rp)->magic, 14);
+        start[13] = '\0';
+        if (!strcmp(start, "DiskBasedHash")) {
+            last_error = "Version mismatch. This code can only load version 1.0.";
+        } else {
+            last_error = "No magic number found.";
+        }
+        dht_free(rp);
+        return 0;
     }
     return rp;
 }
