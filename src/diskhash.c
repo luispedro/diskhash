@@ -86,7 +86,7 @@ const uint64_t* chashtable_of(const HashTable* ht) {
 }
 
 void show_ht(const HashTable* ht) {
-    fprintf(stderr, "HT {\n\tcursize = %d,\n\tslots used = %d\n\n", (int)cheader_of(ht)->cursize_, cheader_of(ht)->slots_used_);
+    fprintf(stderr, "HT {\n\tmagic = \"%s\",\n\tcursize = %d,\n\tslots used = %d\n\n", cheader_of(ht)->magic, (int)cheader_of(ht)->cursize_, cheader_of(ht)->slots_used_);
 
     int i;
     for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
@@ -119,15 +119,18 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags) {
     const int fd = open(fpath, flags, 0644);
     int needs_init = 0;
     if (fd < 0) {
+        last_error = "open call failed.";
         return NULL;
     }
     HashTable* rp = malloc(sizeof(HashTable));
     if (!rp) {
+        last_error = "could not allocate memory.";
         return NULL;
     }
     rp->fd_ = fd;
     rp->fname_ = strdup(fpath);
     if (!rp->fname_) {
+        last_error = "could not allocate memory.";
         close(rp->fd_);
         free(rp);
         return NULL;
@@ -139,6 +142,7 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags) {
         needs_init = 1;
         rp->datasize_ = sizeof(HashTableHeader) + 7 * sizeof(uint64_t) + 3 * node_size_opts(opts);
         if (ftruncate(fd, rp->datasize_) < 0) {
+            last_error = "could not allocate disk space.";
             close(rp->fd_);
             free((char*)rp->fname_);
             free(rp);
@@ -155,6 +159,7 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags) {
             rp->fd_,
             0);
     if (rp->data_ == MAP_FAILED) {
+        last_error = "could not mmap().";
         close(rp->fd_);
         free((char*)rp->fname_);
         free(rp);
@@ -228,6 +233,7 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
     while (1) {
         temp_ht->fname_ = generate_tempname_from(ht->fname_);
         if (!temp_ht->fname_) {
+            last_error = "Could not allocate memory.";
             free(temp_ht);
             return 0;
         }
@@ -236,6 +242,7 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
         free((char*)temp_ht->fname_);
     }
     if (ftruncate(temp_ht->fd_, total_size) < 0) {
+        last_error = "Could not ftruncate().";
         free((char*)temp_ht->fname_);
         free(temp_ht);
         return 0;
@@ -248,6 +255,7 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
             temp_ht->fd_,
             0);
     if (temp_ht->data_ == MAP_FAILED) {
+        last_error = "Could not mmap().";
         close(temp_ht->fd_);
         unlink(temp_ht->fname_);
         free((char*)temp_ht->fname_);
@@ -257,7 +265,6 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
     memcpy(header_of(temp_ht), header_of(ht), sizeof(HashTableHeader));
     header_of(temp_ht)->cursize_ = n;
     header_of(temp_ht)->slots_used_ = 0;
-
 
     uint64_t* table = hashtable_of(ht);
     HashTableEntry et;
@@ -269,6 +276,7 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
 
     const char* temp_fname = strdup(temp_ht->fname_);
     if (!temp_fname) {
+        last_error = "Could not allocate memory.";
         unlink(temp_ht->fname_);
         dht_free(temp_ht);
         return 0;
@@ -284,6 +292,7 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
 
     temp_ht = dht_open(ht->fname_, opts, O_RDWR);
     if (!temp_ht) {
+        /* last_error is set by dht_open */
         return 0;
     }
     free((char*)ht->fname_);
@@ -312,7 +321,7 @@ int dht_insert(HashTable* ht, const char* key, const void* data) {
     }
     /* Max load is 50% */
     if (cheader_of(ht)->cursize_ / 2 <= cheader_of(ht)->slots_used_) {
-        if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1)) return 0;
+        if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1)) return -1;
     }
     int h = hash_key(key) % cheader_of(ht)->cursize_;
     while (1) {

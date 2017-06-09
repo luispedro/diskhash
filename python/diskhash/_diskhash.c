@@ -41,6 +41,12 @@ PyObject* htInsert(htObject* self, PyObject* args) {
         return NULL;
     }
     int r = dht_insert(self->ht, k, &v);
+    if (r == -1) {
+        const char* err = dht_geterror();
+        if (!err) err = "Error in dht_insert.";
+        PyErr_SetString(PyExc_RuntimeError, err);
+        return NULL;
+    }
     return PyLong_FromLong(r);
 }
 
@@ -81,6 +87,13 @@ htInit(htObject *self, PyObject *args, PyObject *kwds) {
     opts.object_datalen = 8;
 
     self->ht = dht_open(fpath, opts, 66);
+
+    if (!self->ht) {
+        const char* err = dht_geterror();
+        if (!err) err = "Error in dht_open.";
+        PyErr_SetString(PyExc_RuntimeError, err);
+        return -1;
+    }
     return 0;
 }
 

@@ -97,6 +97,13 @@ void dht_free(HashTable*);
 /** For debug use only */
 void show_ht(const HashTable*);
 
+/** Get the last error if available
+ *
+ * This is, in no way, thread safe. However, the only fully-thread safe
+ * operation is dht_lookup and that operation cannot trigger any errors (it may
+ * return NULL if the element is not found, naturally, but that is not an
+ * error).
+ */
 const char* dht_geterror(void);
 
 #ifdef __cplusplus
