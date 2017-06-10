@@ -1,5 +1,9 @@
 # Disk-based hashtable
 
+[![Travis](https://api.travis-ci.org/luispedro/diskhash.png)](https://travis-ci.org/luispedro/diskhash)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+
 A simple disk-based hash table.
 
 The code is in C, but Python and Haskell wrappers are provided too. The
@@ -86,6 +90,8 @@ tb.insert("key", 9)
 print(tb.lookup("key"))
 ```
 
+The Python interface is currently Python 3 only. Patches to extend it to 2.7
+are welcome, but it's not a priority.
 
 License: MIT
 
