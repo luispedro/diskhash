@@ -324,6 +324,10 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
     return cap;
 }
 
+size_t dht_size(const HashTable* ht) {
+    return cheader_of(ht)->slots_used_;
+}
+
 void* dht_lookup(const HashTable* ht, const char* key) {
     int h = hash_key(key) % cheader_of(ht)->cursize_;
     int i;

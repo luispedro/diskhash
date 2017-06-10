@@ -87,8 +87,16 @@ int dht_insert(HashTable*, const char* key, const void* data);
  *
  * If capacity cannot be allocated, this function returns 0 (but no changes to
  * the hash table are made).
+ *
+ * This function can be used to query the current capacity by passing the value
+ * 1 as the desired capacity.
  */
 size_t dht_reserve(HashTable*, size_t capacity);
+
+/**
+ * Return the number of elements
+ */
+size_t dht_size(const HashTable*);
 
 /** Free the hashtable and sync to disk.
  */

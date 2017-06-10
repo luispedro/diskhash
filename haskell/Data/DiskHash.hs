@@ -6,6 +6,8 @@ module Data.DiskHash
     , htOpenRW
     , htLookupRO
     , htLookupRW
+    , htSizeRW
+    , htSizeRO
     , htInsert
     , htModify
     , htReserve
@@ -19,22 +21,25 @@ import Foreign.Ptr (Ptr, FunPtr, castPtr, nullPtr)
 import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, withForeignPtr)
 import Foreign.Storable (Storable(..))
 import Foreign.Marshal.Alloc (alloca)
-import Foreign.C.Types (CInt(..))
+import Foreign.C.Types (CInt(..), CSize(..))
 import Foreign.C.String (CString)
 
 -- | Disk based hash table
 --
 -- The Haskell interface has two types, distinguishing between read-only and
--- read-write hash tables.
+-- read-write hash tables. Operations on the RW variant are in the IO monad,
+-- while operations on RO tables are all pure (after opening the table,
+-- naturally).
 
 type HashTable_t = ForeignPtr ()
-data DiskHashRO a = DiskHashRO HashTable_t
-data DiskHashRW a = DiskHashRW HashTable_t
+newtype DiskHashRO a = DiskHashRO HashTable_t
+newtype DiskHashRW a = DiskHashRW HashTable_t
 
 foreign import ccall "dht_open2" c_dht_open2:: CString -> CInt -> CInt -> CInt -> IO (Ptr ())
 foreign import ccall "dht_lookup" c_dht_lookup :: Ptr () -> CString -> IO (Ptr ())
 foreign import ccall "dht_reserve" c_dht_reserve :: Ptr () -> CInt -> IO ()
 foreign import ccall "dht_insert" c_dht_insert :: Ptr () -> CString -> Ptr () -> IO CInt
+foreign import ccall "dht_size" c_dht_size :: Ptr () -> IO CSize
 foreign import ccall "&dht_free" c_dht_free_p :: FunPtr (Ptr () -> IO ())
 
 -- | open a hash table in read-write mode
@@ -44,6 +49,14 @@ htOpenRW fpath maxk = DiskHashRW <$> open' (undefined :: a) fpath maxk 66
 -- | open a hash table in read-only mode
 htOpenRO :: forall a. (Storable a) => FilePath -> Int -> IO (DiskHashRO a)
 htOpenRO fpath maxk = DiskHashRO <$> open' (undefined :: a) fpath maxk 0
+
+-- | Retrieve the size of the hash table
+htSizeRW :: DiskHashRW a -> IO Int
+htSizeRW (DiskHashRW ht) = withForeignPtr ht $ \ht' -> fromIntegral <$> (c_dht_size ht')
+
+-- | Retrieve the size of the hash table
+htSizeRO :: DiskHashRO a -> Int
+htSizeRO (DiskHashRO ht) = unsafeDupablePerformIO (htSizeRW (DiskHashRW ht))
 
 open' :: forall a. (Storable a) => a -> FilePath -> Int -> CInt -> IO HashTable_t
 open' unused fpath maxk flags = B.useAsCString (B8.pack fpath) $ \fpath' -> do

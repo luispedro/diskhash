@@ -56,12 +56,18 @@ PyObject* htInsert(htObject* self, PyObject* args) {
     return PyLong_FromLong(r);
 }
 
+PyObject* htLen(htObject* self, PyObject* args) {
+    long n = dht_size(self->ht);
+    return PyLong_FromLong(n);
+}
+
 
 
 static PyMethodDef htMethods[] = {
     { "lookup", (PyCFunction)htLookup, METH_VARARGS, "" },
     { "reserve", (PyCFunction)htReserve, METH_VARARGS, "" },
     { "insert", (PyCFunction)htInsert, METH_VARARGS, "" },
+    { "size", (PyCFunction)htLen, METH_VARARGS, "" },
     {NULL}  /* Sentinel */
 };
 
