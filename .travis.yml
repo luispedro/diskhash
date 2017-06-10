@@ -1,4 +1,15 @@
 language: python
+cache:
+  directories:
+    - $HOME/.ghc
+    - $HOME/.cabal
+    - $HOME/.stack
+    - $HOME/miniconda
+
+before_cache:
+    - conda remove --name condaenv --all
+
+
 sudo: false
 python:
   - "3.4"
