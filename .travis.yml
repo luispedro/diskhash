@@ -7,7 +7,7 @@ cache:
     - $HOME/miniconda
 
 before_cache:
-    - conda remove --name condaenv --all
+    - conda remove -y --name condaenv --all
 
 
 sudo: false
@@ -17,23 +17,15 @@ python:
   - "3.6"
 
 before_install:
-    - mkdir -p ~/.local/bin
-    - export PATH=$HOME/.local/bin:$PATH
-    - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-
-    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-    - chmod +x miniconda.sh
-    - ./miniconda.sh -b -p $HOME/miniconda
-    - export PATH=$HOME/miniconda/bin:$PATH
-    - conda update --yes conda
+    - .travis/travis_before_install.sh
 
 install:
-    - conda create  --yes -n condaenv python=$TRAVIS_PYTHON_VERSION pytest
-    - source activate condaenv
-    - stack --no-terminal setup
-    - make
+    - export PATH=$HOME/.local/bin:$PATH
+    - export PATH=$HOME/miniconda/bin:$PATH
+    - .travis/travis_install.sh
 
 script:
+    - source activate condaenv
     - make check
 
 addons:
