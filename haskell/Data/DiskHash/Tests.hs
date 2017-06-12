@@ -4,8 +4,14 @@ module Main where
 
 import           Test.Framework.TH
 import           Test.HUnit
+import           Test.QuickCheck.Property
 import           Test.Framework.Providers.HUnit
+import           Test.Framework.Providers.QuickCheck2
 
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as B8
+import           Control.Arrow (first)
+import           Control.Monad (forM, forM_)
 import           Control.Exception (throwIO)
 import           System.IO.Error (isDoesNotExistError, catchIOError)
 import           System.Directory (doesFileExist, removeFile)
@@ -41,3 +47,36 @@ case_smoke = do
     val <- htLookupRW "key" ht
     assertEqual "Lookup" (Just 9) val
     removeFileIfExists outname
+
+case_open_close = do
+    withDiskHashRW outname 15 $ \ht -> do
+        s <- htSizeRW ht
+        assertEqual "new table has size 0" s 0
+        inserted <- htInsert "key" (9 :: Int64) ht
+        assertBool "inserted should have return True" inserted
+    ht <- htOpenRO outname 15
+    assertEqual "read-only table after reopen" (htSizeRO ht) 1
+    assertEqual "Lookup" (Just (9 :: Int64)) (htLookupRO "key" ht)
+    removeFileIfExists outname
+
+-- prop_insert_find :: [(String, Int64)] -> IO Bool
+prop_insert_find args = ioProperty $ do
+    let args' = normArgs args
+    found <- withDiskHashRW outname 15 $ \ht -> do
+        forM_ args' $ \(k,val) -> htInsert k val ht
+        forM args' $ \(k, val) -> do
+            v <- htLookupRW k ht
+            return $ v == Just val
+    removeFileIfExists outname
+    return $! and found
+
+
+normArgs :: [(String, Int64)] -> [(B.ByteString, Int64)]
+normArgs = normArgs' [] . map (first normKey)
+    where
+        normKey = B8.pack . (filter (/= '\0'))
+        normArgs' r [] = r
+        normArgs' r (x@(k,_):xs)
+            | k `elem` (map fst r) = normArgs' r xs
+            | B.length k >= 15 = normArgs' r xs
+            | otherwise = normArgs' (x:r) xs

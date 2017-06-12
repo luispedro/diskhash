@@ -37,8 +37,10 @@ Test-Suite diskhashtest
     bytestring,
     directory,
     HUnit,
+    QuickCheck,
     test-framework,
     test-framework-hunit,
+    test-framework-quickcheck2,
     test-framework-th
 
 source-repository head
