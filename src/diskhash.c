@@ -344,6 +344,7 @@ void* dht_lookup(const HashTable* ht, const char* key) {
 
 int dht_insert(HashTable* ht, const char* key, const void* data) {
     if (strlen(key) + 1 >= header_of(ht)->opts_.key_maxlen) {
+        last_error = "Key is too long";
         return -1;
     }
     /* Max load is 50% */
