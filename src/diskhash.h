@@ -5,6 +5,17 @@ extern "C" {
 #endif
 
 
+/**
+ * key_maxlen is the maximum key length not including the terminator NUL, i.e.,
+ * diskhash will check that for every key you insert `strlen(key) <
+ * opts.key_maxlen`.
+ *
+ * Internally, space is allocated on 8-Byte aligned boundaries, so numbers such
+ * as 7, 15, 23, 31, ... (i.e., multiples of 8 minus 1 for NUL) are good
+ * choices for key_maxlen.
+ *
+ * object_datalen is the number of Bytes that your data elements occupy.
+ */
 typedef struct HashTableOpts {
     size_t key_maxlen;
     size_t object_datalen;

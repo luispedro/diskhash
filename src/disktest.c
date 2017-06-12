@@ -43,7 +43,10 @@ int main() {
     while (fgets(buffer, 255, stdin)) {
         chomp(buffer);
         printf("Looking for %s: %ld\n", buffer, dht_lookup_data_or(ht, buffer, -1));
-        dht_insert(ht, buffer, &i);
+        int v = dht_insert(ht, buffer, &i);
+        if (v < 1) {
+            printf("dht_insert returned %d; %s.\n", v, dht_geterror());
+        }
         ++i;
     }
     show_ht(ht);

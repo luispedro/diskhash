@@ -67,7 +67,7 @@ int is_64bit(const HashTable* ht) {
 
 inline static
 size_t node_size_opts(HashTableOpts opts) {
-    return aligned_size(opts.key_maxlen) + aligned_size(opts.object_datalen);
+    return aligned_size(opts.key_maxlen + 1) + aligned_size(opts.object_datalen);
 }
 
 inline static
@@ -132,7 +132,7 @@ HashTableEntry entry_at(const HashTable* ht, size_t ix) {
                             + sizeof(HashTableHeader)
                             + cheader_of(ht)->cursize_ * sizeof_table_elem;
     r.ht_key = node_data + ix * node_size(ht);
-    r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen) );
+    r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
     return r;
 }
 
@@ -343,7 +343,7 @@ void* dht_lookup(const HashTable* ht, const char* key) {
 }
 
 int dht_insert(HashTable* ht, const char* key, const void* data) {
-    if (strlen(key) + 1 >= header_of(ht)->opts_.key_maxlen) {
+    if (strlen(key) >= header_of(ht)->opts_.key_maxlen) {
         last_error = "Key is too long";
         return -1;
     }
