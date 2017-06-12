@@ -93,5 +93,12 @@ print(tb.lookup("key"))
 The Python interface is currently Python 3 only. Patches to extend it to 2.7
 are welcome, but it's not a priority.
 
+## Statibility
+
+This is _beta_ software. It is good enough that I am using it, but the API can
+change in the future with little warning. The binary format will be fixed once
+there is an upload to PyPI or Stackage, but that format is versioned (the magic
+string encodes its version, so changes can be detected).
+
 License: MIT
 
