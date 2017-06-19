@@ -345,11 +345,11 @@ void* dht_lookup(const HashTable* ht, const char* key) {
 int dht_insert(HashTable* ht, const char* key, const void* data) {
     if (strlen(key) >= header_of(ht)->opts_.key_maxlen) {
         last_error = "Key is too long";
-        return -1;
+        return -EINVAL;
     }
     /* Max load is 50% */
     if (cheader_of(ht)->cursize_ / 2 <= cheader_of(ht)->slots_used_) {
-        if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1)) return -1;
+        if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1)) return -ENOMEM;
     }
     int h = hash_key(key) % cheader_of(ht)->cursize_;
     while (1) {

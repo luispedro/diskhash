@@ -79,11 +79,14 @@ void* dht_lookup(const HashTable*, const char* key);
  * time-consuming operation as all the values are copied to the newly allocated
  * memory block (see dht_reserve).
  *
+ * Errors can occur if table expansion is needed and memory cannot be
+ * allocated.
+ *
  * Returns 1 if the value was inserted.
  *         0 if the key was already present in the table. The hash table was
  *         not modified.
- *         -1 if there was an error. Errors can occur if table expansion is
- *         needed and memory cannot be allocated.
+ *         -EINVAL : key is too long
+ *	   -ENOMEM : dht_reserve failed.
  */
 int dht_insert(HashTable*, const char* key, const void* data);
 
@@ -97,7 +100,7 @@ int dht_insert(HashTable*, const char* key, const void* data);
  * than is currently used is a no-op.
  *
  * If capacity cannot be allocated, this function returns 0 (but no changes to
- * the hash table are made).
+ * the hash table are made). dht_geterror() will return the last error.
  *
  * This function can be used to query the current capacity by passing the value
  * 1 as the desired capacity.
