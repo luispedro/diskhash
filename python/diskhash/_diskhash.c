@@ -63,11 +63,50 @@ PyObject* htLen(htObject* self, PyObject* args) {
 
 
 
+
+
 static PyMethodDef htMethods[] = {
-    { "lookup", (PyCFunction)htLookup, METH_VARARGS, "" },
-    { "reserve", (PyCFunction)htReserve, METH_VARARGS, "" },
-    { "insert", (PyCFunction)htInsert, METH_VARARGS, "" },
-    { "size", (PyCFunction)htLen, METH_VARARGS, "" },
+    { "lookup", (PyCFunction)htLookup, METH_VARARGS,
+		    "Lookup a value.\n"
+		    "\n"
+		    "Returns value if found, otherwise None.\n" },
+
+    { "reserve", (PyCFunction)htReserve, METH_VARARGS,
+		    "Reserve space\n"
+		    "\n"
+		    "Parameters\n"
+		    "----------\n"
+		    "\n"
+		    "c: int\n"
+		    "    Desired capacity\n"
+		    "\n"
+		    "Returns\n"
+		    "-------\n"
+		    "c : int\n"
+		    "   New capacity.\n" },
+
+    { "insert", (PyCFunction)htInsert, METH_VARARGS,
+		    "Insert an element into the hash.\n"
+		    "\n"
+		    "This function can fail (raising an exception) if there is not enough \n"
+		    "capacity and hash cannot be resized.\n"
+		    "\n"
+		    "Parameters\n"
+		    "----------\n"
+		    "\n"
+		    "key : str\n"
+		    "    Key to insert\n"
+		    "value : int\n"
+		    "    Valueto insert\n"
+		    "\n"
+		    "Returns\n"
+		    "-------\n"
+		    "r : int\n"
+		    "   1 if object was inserted, 0 if not.\n" },
+
+    { "size", (PyCFunction)htLen, METH_VARARGS, "",
+		    "Return number of elements." },
+
     {NULL}  /* Sentinel */
 };
 
@@ -116,6 +155,7 @@ htDealloc(htObject* ht) {
 }
 
 
+
 static PyTypeObject htWrapperType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "diskhash.Str2int",        /* tp_name */
@@ -138,7 +178,11 @@ static PyTypeObject htWrapperType = {
     0,                         /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT |
         Py_TPFLAGS_BASETYPE,   /* tp_flags */
-    "Disk based str -> int mapping", /* tp_doc */
+
+    "Disk based str -> int mapping.\n"
+    "\n"
+    "See https://github.com/luispedro/diskhash\n", /* tp_doc */
+
     0,                         /* tp_traverse */
     0,                         /* tp_clear */
     0,                         /* tp_richcompare */
