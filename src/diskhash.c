@@ -108,7 +108,11 @@ void set_table_at(HashTable* ht, uint64_t ix, const uint64_t val) {
 }
 
 void show_ht(const HashTable* ht) {
-    fprintf(stderr, "HT {\n\tmagic = \"%s\",\n\tcursize = %d,\n\tslots used = %d\n\n", cheader_of(ht)->magic, (int)cheader_of(ht)->cursize_, cheader_of(ht)->slots_used_);
+    fprintf(stderr, "HT {\n"
+                "\tmagic = \"%s\",\n"
+                "\tcursize = %d,\n"
+                "\tslots used = %ld\n"
+                "\n", cheader_of(ht)->magic, (int)cheader_of(ht)->cursize_, cheader_of(ht)->slots_used_);
 
     int i;
     for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
@@ -133,6 +137,13 @@ HashTableEntry entry_at(const HashTable* ht, size_t ix) {
                             + cheader_of(ht)->cursize_ * sizeof_table_elem;
     r.ht_key = node_data + ix * node_size(ht);
     r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
+    return r;
+}
+
+HashTableOpts dht_zero_opts() {
+    HashTableOpts r;
+    r.key_maxlen = 0;
+    r.object_datalen = 0;
     return r;
 }
 
@@ -201,6 +212,11 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags) {
         } else {
             last_error = "No magic number found.";
         }
+        dht_free(rp);
+        return 0;
+    } else if (header_of(rp)->opts_.key_maxlen != opts.key_maxlen
+                || header_of(rp)->opts_.object_datalen != opts.object_datalen) {
+        last_error = "Options mismatch.";
         dht_free(rp);
         return 0;
     }

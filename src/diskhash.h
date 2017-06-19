@@ -29,6 +29,10 @@ typedef struct HashTable {
 } HashTable;
 
 
+/** Zero-valued options
+ */
+HashTableOpts dht_zero_opts(void);
+
 /** Open a hash table file
  *
  * fpath is the file path
@@ -48,6 +52,11 @@ typedef struct HashTable {
  * Read-only:
  *
  *      HashTable* ht = dht_open("hashtable.dht", opts, O_RDONLY);
+ *
+ * When opening an existing disk table, you can pass `{ 0, 0 }` (the return
+ * value of `dht_zero_opts()`) as the options, in which case the values will be
+ * taken from the table on disk. If you do pass values, they are checked
+ * against the values on disk and it is an error if there is a mismatch.
  */
 HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags);
 
