@@ -21,9 +21,9 @@ import System.IO.Unsafe (unsafeDupablePerformIO)
 import Foreign.Ptr (Ptr, FunPtr, castPtr, nullPtr)
 import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, withForeignPtr, finalizeForeignPtr)
 import Foreign.Storable (Storable(..))
-import Foreign.Marshal.Alloc (alloca)
+import Foreign.Marshal.Alloc (alloca, free)
 import Foreign.C.Types (CInt(..), CSize(..))
-import Foreign.C.String (CString)
+import Foreign.C.String (CString, peekCString)
 
 -- | Disk based hash table
 --
@@ -38,13 +38,26 @@ type HashTable_t = ForeignPtr ()
 newtype DiskHashRO a = DiskHashRO HashTable_t
 newtype DiskHashRW a = DiskHashRW HashTable_t
 
-foreign import ccall "dht_open2" c_dht_open2:: CString -> CInt -> CInt -> CInt -> IO (Ptr ())
+foreign import ccall "dht_open2" c_dht_open2:: CString -> CInt -> CInt -> CInt -> Ptr CString -> IO (Ptr ())
 foreign import ccall "dht_lookup" c_dht_lookup :: Ptr () -> CString -> IO (Ptr ())
-foreign import ccall "dht_reserve" c_dht_reserve :: Ptr () -> CInt -> IO ()
-foreign import ccall "dht_insert" c_dht_insert :: Ptr () -> CString -> Ptr () -> IO CInt
+foreign import ccall "dht_reserve" c_dht_reserve :: Ptr () -> CInt -> Ptr CString -> IO ()
+foreign import ccall "dht_insert" c_dht_insert :: Ptr () -> CString -> Ptr () -> Ptr CString -> IO CInt
 foreign import ccall "dht_size" c_dht_size :: Ptr () -> IO CSize
 foreign import ccall "&dht_free" c_dht_free_p :: FunPtr (Ptr () -> IO ())
 
+-- | Internal function to handle error message interface
+--
+-- If argument points to NULL, then return "No message"
+-- Otherwise, return its contents and release memory
+getError :: Ptr CString -> IO String
+getError err = do
+    err' <- peek err
+    if err' == nullPtr
+        then return "No message"
+        else do
+            m <- peekCString err'
+            free err'
+            return m
 -- | open a hash table in read-write mode
 htOpenRW :: forall a. (Storable a) => FilePath -> Int -> IO (DiskHashRW a)
 htOpenRW fpath maxk = DiskHashRW <$> open' (undefined :: a) fpath maxk 66
@@ -54,9 +67,16 @@ htOpenRO :: forall a. (Storable a) => FilePath -> Int -> IO (DiskHashRO a)
 htOpenRO fpath maxk = DiskHashRO <$> open' (undefined :: a) fpath maxk 0
 
 open' :: forall a. (Storable a) => a -> FilePath -> Int -> CInt -> IO HashTable_t
-open' unused fpath maxk flags = B.useAsCString (B8.pack fpath) $ \fpath' -> do
-    ht <- c_dht_open2 fpath' (fromIntegral maxk) (fromIntegral $ sizeOf unused) flags
-    newForeignPtr c_dht_free_p ht
+open' unused fpath maxk flags = B.useAsCString (B8.pack fpath) $ \fpath' ->
+    alloca $ \err -> do
+        poke err nullPtr
+        ht <- c_dht_open2 fpath' (fromIntegral maxk) (fromIntegral $ sizeOf unused) flags err
+        if ht == nullPtr
+            then do
+                errmsg <- getError err
+                throwIO $ userError ("Could not open hash table: " ++ show errmsg)
+            else
+                newForeignPtr c_dht_free_p ht
 
 -- | Open a hash table in read-write mode and pass it to an action
 --
@@ -93,14 +113,20 @@ htInsert :: (Storable a) => B.ByteString
 htInsert key val (DiskHashRW ht) =
         withForeignPtr ht $ \ht' ->
             B.useAsCString key $ \key' ->
-                alloca $ \val' -> do
-                    poke val' val
-                    r <- c_dht_insert ht' key' (castPtr val')
-                    case r of
-                        1 -> return True
-                        0 -> return False
-                        -1 -> throwIO $ userError "insertion failed (probably out of memory)"
-                        _ -> throwIO $ userError "Unexpected return from dht_insert"
+                alloca $ \val' ->
+                    alloca $ \err -> do
+                        poke err nullPtr
+                        poke val' val
+                        r <- c_dht_insert ht' key' (castPtr val') err
+                        case r of
+                            1 -> return True
+                            0 -> return False
+                            -1 -> do
+                                errmsg <- getError err
+                                throwIO $ userError ("insertion failed ("++errmsg++")")
+                            _ -> do
+                                errmsg <- getError err
+                                throwIO $ userError ("Unexpected return from dht_insert: " ++ errmsg)
 -- | Lookup by key
 htLookupRW :: (Storable a) => B.ByteString -> DiskHashRW a -> IO (Maybe a)
 htLookupRW key (DiskHashRW ht) =
@@ -133,9 +159,13 @@ htModify key f (DiskHashRW ht) =
 -- If the operation fails, an exception is raised
 htReserve :: (Storable a) => Int -> DiskHashRW a -> IO Int
 htReserve cap (DiskHashRW ht) =
-    withForeignPtr ht $ \ht' -> do
-        cap' <- fromEnum <$> c_dht_reserve ht' (fromIntegral cap)
-        if cap' == 0
-            then throwIO $ userError "Could not change capacity"
-            else return cap'
+    withForeignPtr ht $ \ht' ->
+        alloca $ \err -> do
+            poke err nullPtr
+            cap' <- fromEnum <$> c_dht_reserve ht' (fromIntegral cap) err
+            if cap' == 0
+                then do
+                    errmsg <- getError err
+                    throwIO . userError $ "Could not change capacity: " ++ errmsg
+                else return cap'
 

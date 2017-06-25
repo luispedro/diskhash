@@ -47,18 +47,24 @@ HashTableOpts dht_zero_opts(void);
  *      HashTableOpts opts;
  *      opts.key_maxlen = 15;
  *      opts.object_datalen = 8;
- *      HashTable* ht = dht_open("hashtable.dht", opts, O_RDWR|O_CREAT);
+ *      char* err;
+ *      HashTable* ht = dht_open("hashtable.dht", opts, O_RDWR|O_CREAT, &err);
  *
  * Read-only:
  *
- *      HashTable* ht = dht_open("hashtable.dht", opts, O_RDONLY);
+ *      char* err;
+ *      HashTable* ht = dht_open("hashtable.dht", opts, O_RDONLY, &err);
  *
  * When opening an existing disk table, you can pass `{ 0, 0 }` (the return
  * value of `dht_zero_opts()`) as the options, in which case the values will be
  * taken from the table on disk. If you do pass values, they are checked
  * against the values on disk and it is an error if there is a mismatch.
+ *
+ * The last argument is an error output argument. If it is set to a non-NULL
+ * value, then the memory must be released with free(). Passing NULL is valid
+ * (and no error message will be produced).
  */
-HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags);
+HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char**);
 
 /** Lookup a value by key
  *
@@ -96,8 +102,12 @@ void* dht_lookup(const HashTable*, const char* key);
  *         not modified.
  *         -EINVAL : key is too long
  *	   -ENOMEM : dht_reserve failed.
+ *
+ * The last argument is an error output argument. If it is set to a non-NULL
+ * value, then the memory must be released with free(). Passing NULL is valid
+ * (and no error message will be produced).
  */
-int dht_insert(HashTable*, const char* key, const void* data);
+int dht_insert(HashTable*, const char* key, const void* data, char** err);
 
 /** Preallocate memory for the table.
  *
@@ -113,8 +123,12 @@ int dht_insert(HashTable*, const char* key, const void* data);
  *
  * This function can be used to query the current capacity by passing the value
  * 1 as the desired capacity.
+ *
+ * The last argument is an error output argument. If it is set to a non-NULL
+ * value, then the memory must be released with free(). Passing NULL is valid
+ * (and no error message will be produced).
  */
-size_t dht_reserve(HashTable*, size_t capacity);
+size_t dht_reserve(HashTable*, size_t capacity, char** err);
 
 /**
  * Return the number of elements
@@ -128,14 +142,6 @@ void dht_free(HashTable*);
 /** For debug use only */
 void show_ht(const HashTable*);
 
-/** Get the last error if available
- *
- * This is, in no way, thread safe. However, the only fully-thread safe
- * operation is dht_lookup and that operation cannot trigger any errors (it may
- * return NULL if the element is not found, naturally, but that is not an
- * error).
- */
-const char* dht_geterror(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

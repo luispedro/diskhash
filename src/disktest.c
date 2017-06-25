@@ -32,9 +32,11 @@ int main() {
     HashTableOpts opts;
     opts.key_maxlen = 15;
     opts.object_datalen = sizeof(data_t);
-    HashTable* ht = dht_open("testing.dht", opts, O_RDWR|O_CREAT);
+    char* err;
+    HashTable* ht = dht_open("testing.dht", opts, O_RDWR|O_CREAT, &err);
     if (!ht) {
-        fprintf(stderr, "Failed opening hash table.\n");
+        fprintf(stderr, "Failed opening hash table: %s.\n", err);
+        free(err);
         return 1;
     }
 
@@ -43,9 +45,10 @@ int main() {
     while (fgets(buffer, 255, stdin)) {
         chomp(buffer);
         printf("Looking for %s: %ld\n", buffer, dht_lookup_data_or(ht, buffer, -1));
-        int v = dht_insert(ht, buffer, &i);
+        int v = dht_insert(ht, buffer, &i, &err);
         if (v < 1) {
-            printf("dht_insert returned %d; %s.\n", v, dht_geterror());
+            printf("dht_insert returned %d; %s.\n", v, err);
+            free(err);
         }
         ++i;
     }

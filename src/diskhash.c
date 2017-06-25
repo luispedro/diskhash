@@ -15,12 +15,6 @@
 #include "diskhash.h"
 #include "primes.h"
 
-static const char* last_error = NULL;
-static char errorbuf[512];
-const char* dht_geterror(void) {
-    return last_error;
-}
-
 typedef struct HashTableHeader {
     char magic[16];
     HashTableOpts opts_;
@@ -147,23 +141,23 @@ HashTableOpts dht_zero_opts() {
     return r;
 }
 
-HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags) {
+HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err) {
     if (!fpath || !*fpath) return NULL;
     const int fd = open(fpath, flags, 0644);
     int needs_init = 0;
     if (fd < 0) {
-        last_error = "open call failed.";
+        if (err) { *err = strdup("open call failed."); }
         return NULL;
     }
     HashTable* rp = malloc(sizeof(HashTable));
     if (!rp) {
-        last_error = "could not allocate memory.";
+        if (err) { *err = strdup("Could not allocate memory."); }
         return NULL;
     }
     rp->fd_ = fd;
     rp->fname_ = strdup(fpath);
     if (!rp->fname_) {
-        last_error = "could not allocate memory.";
+        if (err) { *err = strdup("Could not allocate memory."); }
         close(rp->fd_);
         free(rp);
         return NULL;
@@ -175,7 +169,7 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags) {
         needs_init = 1;
         rp->datasize_ = sizeof(HashTableHeader) + 7 * sizeof(uint32_t) + 3 * node_size_opts(opts);
         if (ftruncate(fd, rp->datasize_) < 0) {
-            last_error = "could not allocate disk space.";
+            if (err) { *err = strdup("Could not allocate disk space."); }
             close(rp->fd_);
             free((char*)rp->fname_);
             free(rp);
@@ -192,7 +186,7 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags) {
             rp->fd_,
             0);
     if (rp->data_ == MAP_FAILED) {
-        last_error = "could not mmap().";
+        if (err) { *err = strdup("mmap() call failed."); }
         close(rp->fd_);
         free((char*)rp->fname_);
         free(rp);
@@ -208,15 +202,15 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags) {
         strncpy(start, header_of(rp)->magic, 14);
         start[13] = '\0';
         if (!strcmp(start, "DiskBasedHash")) {
-            last_error = "Version mismatch. This code can only load version 1.0.";
+            if (err) { *err = strdup("Version mismatch. This code can only load version 1.0."); }
         } else {
-            last_error = "No magic number found.";
+            if (err) { *err = strdup("No magic number found."); }
         }
         dht_free(rp);
         return 0;
     } else if (header_of(rp)->opts_.key_maxlen != opts.key_maxlen
                 || header_of(rp)->opts_.object_datalen != opts.object_datalen) {
-        last_error = "Options mismatch.";
+        if (err) { *err = strdup("Options mismatch."); }
         dht_free(rp);
         return 0;
     }
@@ -255,7 +249,7 @@ char* generate_tempname_from(const char* base) {
     return res;
 }
 
-size_t dht_reserve(HashTable* ht, size_t cap) {
+size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     if (header_of(ht)->cursize_ / 2 > cap) {
         return header_of(ht)->cursize_ / 2;
     }
@@ -272,7 +266,7 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
     while (1) {
         temp_ht->fname_ = generate_tempname_from(ht->fname_);
         if (!temp_ht->fname_) {
-            last_error = "Could not allocate memory.";
+            if (err) { *err = strdup("Could not allocate memory."); }
             free(temp_ht);
             return 0;
         }
@@ -281,7 +275,7 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
         free((char*)temp_ht->fname_);
     }
     if (ftruncate(temp_ht->fd_, total_size) < 0) {
-        last_error = "Could not ftruncate().";
+        if (err) { *err = strdup("Could not allocate disk space."); }
         free((char*)temp_ht->fname_);
         free(temp_ht);
         return 0;
@@ -294,8 +288,13 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
             temp_ht->fd_,
             0);
     if (temp_ht->data_ == MAP_FAILED) {
-        snprintf(errorbuf, sizeof(errorbuf), "Could not mmap() new hashtable: %s.\n", strerror(errno));
-        last_error = errorbuf;
+        if (err) {
+            const int errorbufsize = 512;
+            *err = malloc(errorbufsize);
+            if (*err) {
+                snprintf(*err, errorbufsize, "Could not mmap() new hashtable: %s.\n", strerror(errno));
+            }
+        }
         close(temp_ht->fd_);
         unlink(temp_ht->fname_);
         free((char*)temp_ht->fname_);
@@ -310,12 +309,12 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
     for (i = 0; i < header_of(ht)->slots_used_; ++i) {
         set_table_at(ht, 0, i + 1);
         et = entry_at(ht, 0);
-        dht_insert(temp_ht, et.ht_key, et.ht_data);
+        dht_insert(temp_ht, et.ht_key, et.ht_data, NULL);
     }
 
     const char* temp_fname = strdup(temp_ht->fname_);
     if (!temp_fname) {
-        last_error = "Could not allocate memory.";
+        if (err) { *err = strdup("Could not allocate memory."); }
         unlink(temp_ht->fname_);
         dht_free(temp_ht);
         return 0;
@@ -329,9 +328,9 @@ size_t dht_reserve(HashTable* ht, size_t cap) {
 
     rename(temp_fname, ht->fname_);
 
-    temp_ht = dht_open(ht->fname_, opts, O_RDWR);
+    temp_ht = dht_open(ht->fname_, opts, O_RDWR, err);
     if (!temp_ht) {
-        /* last_error is set by dht_open */
+        /* err is set by dht_open */
         return 0;
     }
     free((char*)ht->fname_);
@@ -358,14 +357,14 @@ void* dht_lookup(const HashTable* ht, const char* key) {
     return NULL;
 }
 
-int dht_insert(HashTable* ht, const char* key, const void* data) {
+int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
     if (strlen(key) >= header_of(ht)->opts_.key_maxlen) {
-        last_error = "Key is too long";
+        if (err) { *err = strdup("Key is too long"); }
         return -EINVAL;
     }
     /* Max load is 50% */
     if (cheader_of(ht)->cursize_ / 2 <= cheader_of(ht)->slots_used_) {
-        if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1)) return -ENOMEM;
+        if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1, err)) return -ENOMEM;
     }
     int h = hash_key(key) % cheader_of(ht)->cursize_;
     while (1) {

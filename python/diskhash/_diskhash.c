@@ -30,9 +30,9 @@ PyObject* htReserve(htObject* self, PyObject* args) {
     if (!PyArg_ParseTuple(args, "i", &cap)) {
         return NULL;
     }
-    long r = dht_reserve(self->ht, cap);
+    char* err;
+    long r = dht_reserve(self->ht, cap, &err);
     if (r == 0) {
-        const char* err = dht_geterror();
         if (!err) err = "Error in dht_reserve.";
         PyErr_SetString(PyExc_RuntimeError, err);
         return NULL;
@@ -46,9 +46,9 @@ PyObject* htInsert(htObject* self, PyObject* args) {
     if (!PyArg_ParseTuple(args, "sl", &k, &v)) {
         return NULL;
     }
-    int r = dht_insert(self->ht, k, &v);
+    char* err;
+    int r = dht_insert(self->ht, k, &v, &err);
     if (r == -1) {
-        const char* err = dht_geterror();
         if (!err) err = "Error in dht_insert.";
         PyErr_SetString(PyExc_RuntimeError, err);
         return NULL;
@@ -137,10 +137,10 @@ htInit(htObject *self, PyObject *args, PyObject *kwds) {
     opts.key_maxlen = maxi;
     opts.object_datalen = 8;
 
-    self->ht = dht_open(fpath, opts, 66);
+    char* err;
+    self->ht = dht_open(fpath, opts, 66, &err);
 
     if (!self->ht) {
-        const char* err = dht_geterror();
         if (!err) err = "Error in dht_open.";
         PyErr_SetString(PyExc_RuntimeError, err);
         return -1;
