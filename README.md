@@ -11,8 +11,14 @@ wrappers follow similar APIs with variations to accomodate the language
 specificity. They all use the same underlying code, so you can open a hashtable
 created in C from Haskell, modify it within your Haskell code, and open the
 result in Python (although Python's version currently only deals with integers,
-stored as longs). This will work best for very simple types so that you can
-control their binary representation (64-bit integers, for example).
+stored as longs).
+
+Cross-language functionality will work best for very simple types so that you
+can control their binary representation (64-bit integers, for example).
+
+Reading does not touch the disk representation at all and, thus, can be done on
+top of read-only files or using multiple threads. Writing or modifying values
+is, however, not thread-safe.
 
 ## Examples
 
@@ -101,6 +107,18 @@ This is _beta_ software. It is good enough that I am using it, but the API can
 change in the future with little warning. The binary format will be fixed once
 there is an upload to PyPI or Stackage, but that format is versioned (the magic
 string encodes its version, so changes can be detected).
+
+## Limitations
+
+- You must specify the maximum key size. This can be worked around either by
+  pre-hashing the keys (with a strong hash) or using multiple hash tables for
+  different key sizes. Neither is currently implemented in diskhash.
+
+- You cannot delete objects. This was not a necessity for my uses, so it was
+  not implemented. A simple implementation could be done by marking objects as
+  "deleted" in place and recompacting when the hash table size changes or with
+  an explicit `dht_gc()` call. It may also be important to add functionality to
+  shrink hashtables so as to not waste disk space.
 
 License: MIT
 
