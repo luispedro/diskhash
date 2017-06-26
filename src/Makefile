@@ -1,4 +1,4 @@
-all: diskhashtools disktest libdht.so
+all: disktest libdht.so
 
 diskhashtools: diskhashtools.cpp diskhash.hpp diskhash.o
 	g++ $(CFLAGS) -o diskhashtools diskhashtools.cpp diskhash.o
