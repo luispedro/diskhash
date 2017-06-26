@@ -1,2 +1,5 @@
+Version 0.0.1.1 2017-06-27 by luispedro
+	* Fix cabal release: include C header files
+
 Version 0.0.1 2017-06-27 by luispedro
 	* First release. Basic funcionality

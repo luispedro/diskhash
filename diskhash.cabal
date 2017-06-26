@@ -1,5 +1,5 @@
 name:               diskhash
-version:            0.0.1.0
+version:            0.0.1.1
 synopsis:           Disk-based hash table
 description:        Disk-based hash table
 category:           Data
@@ -17,6 +17,7 @@ library
   exposed-modules: Data.DiskHash
   hs-source-dirs: haskell/
   C-sources: haskell/Data/diskhash2.c src/diskhash.c
+  includes: src/diskhash.h src/primes.h
   Include-dirs: src/
   ghc-options: -Wall
   build-depends:
@@ -29,6 +30,7 @@ Test-Suite diskhashtest
   main-is: Data/DiskHash/Tests.hs
   other-modules: Data.DiskHash
   C-sources: haskell/Data/diskhash2.c src/diskhash.c
+  includes: src/diskhash.h src/primes.h
   ghc-options: -Wall
   hs-source-dirs: haskell/
   include-dirs: src/
