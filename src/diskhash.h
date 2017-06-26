@@ -1,3 +1,5 @@
+#ifndef DISKHASH_H_INCLUDE_GUARD__
+#define DISKHASH_H_INCLUDE_GUARD__
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -146,3 +148,5 @@ void show_ht(const HashTable*);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
+
+#endif /* DISKHASH_H_INCLUDE_GUARD__*/
