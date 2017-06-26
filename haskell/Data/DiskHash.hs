@@ -1,4 +1,20 @@
 {-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
+{-|
+
+Disk based hash table
+
+The Haskell interface has two types, distinguishing between read-only and
+read-write hash tables. Operations on the RW variant are in the IO monad, while
+operations on RO tables are all pure (after the 'htOpenRO' call, naturally).
+Using read-write hashtables with more than one thread is undefined behaviour,
+but the read-only variant is perfectly thread safe.
+
+All data structures are strict (naturally: they write to disk).
+
+The Haskell API can be used to access diskhashes created from other languages
+as long as the types are compatible.
+-}
+
 module Data.DiskHash
     ( DiskHashRO
     , DiskHashRW
@@ -25,17 +41,12 @@ import Foreign.Marshal.Alloc (alloca, free)
 import Foreign.C.Types (CInt(..), CSize(..))
 import Foreign.C.String (CString, peekCString)
 
--- | Disk based hash table
---
--- The Haskell interface has two types, distinguishing between read-only and
--- read-write hash tables. Operations on the RW variant are in the IO monad,
--- while operations on RO tables are all pure (after opening the table,
--- naturally).
---
--- The datastructures are all strict.
-
 type HashTable_t = ForeignPtr ()
+
+-- | Represents a read-only diskhash storing type 'a'
 newtype DiskHashRO a = DiskHashRO HashTable_t
+
+-- | Represents a read-write diskhash storing type 'a'
 newtype DiskHashRW a = DiskHashRW HashTable_t
 
 foreign import ccall "dht_open2" c_dht_open2:: CString -> CInt -> CInt -> CInt -> Ptr CString -> IO (Ptr ())
@@ -58,12 +69,25 @@ getError err = do
             m <- peekCString err'
             free err'
             return m
+
 -- | open a hash table in read-write mode
-htOpenRW :: forall a. (Storable a) => FilePath -> Int -> IO (DiskHashRW a)
+htOpenRW :: forall a. (Storable a) => FilePath
+                                        -- ^ file path
+                                        -> Int
+                                        -- ^ maximum key size
+                                        -> IO (DiskHashRW a)
 htOpenRW fpath maxk = DiskHashRW <$> open' (undefined :: a) fpath maxk 66
 
 -- | open a hash table in read-only mode
-htOpenRO :: forall a. (Storable a) => FilePath -> Int -> IO (DiskHashRO a)
+--
+-- The 'maxk' argument can be 0, in which case the value of the maximum key
+-- will be taken from the disk file. If not zero, then it is checked against
+-- the value on disk and an exception is raised if there is  a mismatch.
+htOpenRO :: forall a. (Storable a) => FilePath
+                                        -- ^ file path
+                                        -> Int
+                                        -- ^ maximum key size
+                                        -> IO (DiskHashRO a)
 htOpenRO fpath maxk = DiskHashRO <$> open' (undefined :: a) fpath maxk 0
 
 open' :: forall a. (Storable a) => a -> FilePath -> Int -> CInt -> IO HashTable_t
@@ -81,7 +105,11 @@ open' unused fpath maxk flags = B.useAsCString (B8.pack fpath) $ \fpath' ->
 -- | Open a hash table in read-write mode and pass it to an action
 --
 -- Once the action is is complete, the hashtable is closed (and sync'ed to disk).
-withDiskHashRW :: (Storable a) => FilePath -> Int -> (DiskHashRW a -> IO b) -> IO b
+withDiskHashRW :: (Storable a) => FilePath
+                                    -- ^ file path
+                                    -> Int
+                                    -- ^ maximum key size
+                                    -> (DiskHashRW a -> IO b) -> IO b
 withDiskHashRW fp s act = do
     ht@(DiskHashRW ht') <- htOpenRW fp s
     r <- act ht
@@ -102,6 +130,10 @@ htSizeRO (DiskHashRO ht) = unsafeDupablePerformIO (htSizeRW (DiskHashRW ht))
 --
 -- Returns whether an insertion took place (if an object with that key already
 -- exists, no insertion is made).
+--
+-- This operation can fail (throwing an exception) if space could not be
+-- allocated. You can pre-allocate space using 'htReserve'.
+--
 htInsert :: (Storable a) => B.ByteString
                             -- ^ key
                             -> a
@@ -128,7 +160,12 @@ htInsert key val (DiskHashRW ht) =
                                 errmsg <- getError err
                                 throwIO $ userError ("Unexpected return from dht_insert: " ++ errmsg)
 -- | Lookup by key
-htLookupRW :: (Storable a) => B.ByteString -> DiskHashRW a -> IO (Maybe a)
+--
+-- This is in the IO Monad to ensure ordering of operations.
+htLookupRW :: (Storable a) => B.ByteString
+                                    -- ^ key
+                                    -> DiskHashRW a
+                                    -> IO (Maybe a)
 htLookupRW key (DiskHashRW ht) =
     withForeignPtr ht $ \ht' ->
         B.useAsCString key $ \key' -> do
@@ -138,6 +175,8 @@ htLookupRW key (DiskHashRW ht) =
                 else Just <$> peek (castPtr r)
 
 -- | Lookup by key
+--
+-- This is a pure operation
 htLookupRO :: (Storable a) => B.ByteString -> DiskHashRO a -> Maybe a
 htLookupRO key (DiskHashRO ht) = unsafeDupablePerformIO (htLookupRW key (DiskHashRW ht))
 
@@ -155,6 +194,8 @@ htModify key f (DiskHashRW ht) =
                     return True
 
 -- | Reserve space in the hash table
+--
+-- Reserving space can ensure that any subsequent 'htInsert' calls will not fail.
 --
 -- If the operation fails, an exception is raised
 htReserve :: (Storable a) => Int -> DiskHashRW a -> IO Int
