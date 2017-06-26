@@ -1,3 +1,6 @@
+#ifndef DISKHASH_PRIMES_H__INCLUDE_GUARD__
+#define DISKHASH_PRIMES_H__INCLUDE_GUARD__
+
 #include <inttypes.h>
 uint64_t primes [] = {
 7, 
@@ -59,3 +62,5 @@ uint64_t primes [] = {
 66283802305549, 
 0 /* sentinel */
 };
+
+#endif
