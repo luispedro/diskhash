@@ -32,13 +32,13 @@ On linux, the package is often called python-setuptools''')
     exit(1)
 import os
 
-exec(compile(open('diskhash/diskhash_version.py').read(),
-             'diskhash/diskhash_version.py', 'exec'))
+exec(compile(open('python/diskhash/diskhash_version.py').read(),
+             'python/diskhash/diskhash_version.py', 'exec'))
 
 try:
-    long_description = open('../README.md', encoding='utf-8').read()
+    long_description = open('README.md', encoding='utf-8').read()
 except:
-    long_description = open('../README.md').read()
+    long_description = open('README.md').read()
 
 undef_macros = []
 define_macros = []
@@ -78,6 +78,7 @@ setuptools.setup(name = 'diskhash',
       classifiers = classifiers,
       url = 'http://github.com/luispedro/diskhash',
       packages = packages,
-      ext_modules = [setuptools.Extension('diskhash._diskhash', sources=['diskhash/_diskhash.c', '../src/diskhash.c'])],
+      package_dir = {'':'python'},
+      ext_modules = [setuptools.Extension('diskhash._diskhash', sources=['python/diskhash/_diskhash.c', 'src/diskhash.c'], depends=['src/diskhash.h'])],
       )
 

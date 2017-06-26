@@ -1,0 +1,6 @@
+include README.md
+include ChangeLog
+include COPYING
+include src/primes.h
+include src/diskhash.h
+recursive-include python/diskhash *.py

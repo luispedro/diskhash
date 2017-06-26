@@ -1,2 +1,6 @@
 /.stack-work/
 *.so
+/build/
+/dist/
+/diskhash.egg-info/
+/.cache/
