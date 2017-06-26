@@ -29,8 +29,6 @@ Test-Suite diskhashtest
   type: exitcode-stdio-1.0
   main-is: Data/DiskHash/Tests.hs
   other-modules: Data.DiskHash
-  C-sources: haskell/Data/diskhash2.c src/diskhash.c
-  includes: src/diskhash.h src/primes.h
   ghc-options: -Wall
   hs-source-dirs: haskell/
   include-dirs: src/
@@ -38,6 +36,7 @@ Test-Suite diskhashtest
     base > 4 && < 5,
     bytestring,
     directory,
+    diskhash,
     HUnit,
     QuickCheck,
     test-framework,
