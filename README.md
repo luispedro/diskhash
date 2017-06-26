@@ -6,7 +6,7 @@
 
 A simple disk-based hash table.
 
-The code is in C, but Python and Haskell wrappers are provided too. The
+The code is in C, wrappers are provided for Python, Haskell, and C++. The
 wrappers follow similar APIs with variations to accomodate the language
 specificity. They all use the same underlying code, so you can open a hashtable
 created in C from Haskell, modify it within your Haskell code, and open the
@@ -101,12 +101,44 @@ print(tb.lookup("key"))
 The Python interface is currently Python 3 only. Patches to extend it to 2.7
 are welcome, but it's not a priority.
 
+
+### C++
+
+```c++
+#include <iostream>
+#include <string>
+
+#include <diskhash.hpp>
+
+int main() {
+    const int key_maxlen = 15;
+    dht::DiskHash<uint64_t> ht("testing.dht", key_maxlen, dht::DHOpenRW);
+    std::string line;
+    uint64_t ix = 0;
+    while (std::getline(std::cine, line)) {
+        if (line.length() > key_maxlen) {
+            std::cerr << "Key too long: '" << line << "'. Aborting.\n";
+            return 2;
+        }
+        const bool inserted = ht.insert(line.c_str(), ix);
+        if (!inserted) {
+            std::cerr  << "Found repeated key '" << line << "' (ignored).\n";
+        }
+        ++ix;
+    }
+    return 0;
+}
+```
+
 ## Statibility
 
 This is _beta_ software. It is good enough that I am using it, but the API can
 change in the future with little warning. The binary format will be fixed once
 there is an upload to PyPI or Stackage, but that format is versioned (the magic
 string encodes its version, so changes can be detected).
+
+[Automated unit testing](https://travis-ci.org/luispedro/diskhash) ensures that
+basic mistakes will not go uncaught.
 
 ## Limitations
 
