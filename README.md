@@ -104,6 +104,11 @@ are welcome, but it's not a priority.
 
 ### C++
 
+In C++, a simple wrapper is defined, which provides a modicum of type-safety.
+You use the `DiskHash<T>` template. Additionally, errors are reported through
+exceptions (both `std::bad_alloc` and `std::runtime_error` can be thrown) and
+not return codes.
+
 ```c++
 #include <iostream>
 #include <string>
@@ -133,9 +138,8 @@ int main() {
 ## Statibility
 
 This is _beta_ software. It is good enough that I am using it, but the API can
-change in the future with little warning. The binary format will be fixed once
-there is an upload to PyPI or Stackage, but that format is versioned (the magic
-string encodes its version, so changes can be detected).
+change in the future with little warning. The binary format is versioned (the
+magic string encodes its version, so changes can be detected).
 
 [Automated unit testing](https://travis-ci.org/luispedro/diskhash) ensures that
 basic mistakes will not go uncaught.
