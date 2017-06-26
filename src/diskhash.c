@@ -151,13 +151,13 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
     }
     HashTable* rp = (HashTable*)malloc(sizeof(HashTable));
     if (!rp) {
-        if (err) { *err = strdup("Could not allocate memory."); }
+        if (err) { *err = NULL; }
         return NULL;
     }
     rp->fd_ = fd;
     rp->fname_ = strdup(fpath);
     if (!rp->fname_) {
-        if (err) { *err = strdup("Could not allocate memory."); }
+        if (err) { *err = NULL; }
         close(rp->fd_);
         free(rp);
         return NULL;
@@ -266,7 +266,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     while (1) {
         temp_ht->fname_ = generate_tempname_from(ht->fname_);
         if (!temp_ht->fname_) {
-            if (err) { *err = strdup("Could not allocate memory."); }
+            if (err) { *err = NULL; }
             free(temp_ht);
             return 0;
         }
@@ -314,7 +314,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
 
     const char* temp_fname = strdup(temp_ht->fname_);
     if (!temp_fname) {
-        if (err) { *err = strdup("Could not allocate memory."); }
+        if (err) { *err = NULL; }
         unlink(temp_ht->fname_);
         dht_free(temp_ht);
         return 0;

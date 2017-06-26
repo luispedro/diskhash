@@ -64,7 +64,9 @@ HashTableOpts dht_zero_opts(void);
  *
  * The last argument is an error output argument. If it is set to a non-NULL
  * value, then the memory must be released with free(). Passing NULL is valid
- * (and no error message will be produced).
+ * (and no error message will be produced). An error return with *err == NULL
+ * will mean an out-of-memory error (when dht fails to allocate memory, it does
+ * not try to allocate memory for an error message).
  */
 HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char**);
 
@@ -107,7 +109,9 @@ void* dht_lookup(const HashTable*, const char* key);
  *
  * The last argument is an error output argument. If it is set to a non-NULL
  * value, then the memory must be released with free(). Passing NULL is valid
- * (and no error message will be produced).
+ * (and no error message will be produced). An error return with *err == NULL
+ * will mean an out-of-memory error (when dht fails to allocate memory, it does
+ * not try to allocate memory for an error message).
  */
 int dht_insert(HashTable*, const char* key, const void* data, char** err);
 
@@ -121,7 +125,7 @@ int dht_insert(HashTable*, const char* key, const void* data, char** err);
  * than is currently used is a no-op.
  *
  * If capacity cannot be allocated, this function returns 0 (but no changes to
- * the hash table are made). dht_geterror() will return the last error.
+ * the hash table are made).
  *
  * This function can be used to query the current capacity by passing the value
  * 1 as the desired capacity.

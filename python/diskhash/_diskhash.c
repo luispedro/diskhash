@@ -33,8 +33,11 @@ PyObject* htReserve(htObject* self, PyObject* args) {
     char* err;
     long r = dht_reserve(self->ht, cap, &err);
     if (r == 0) {
-        if (!err) err = "Error in dht_reserve.";
+        if (!err) {
+            return PyErr_NoMemory();
+        }
         PyErr_SetString(PyExc_RuntimeError, err);
+        free(err);
         return NULL;
     }
     return PyLong_FromLong(r);
@@ -49,8 +52,11 @@ PyObject* htInsert(htObject* self, PyObject* args) {
     char* err;
     int r = dht_insert(self->ht, k, &v, &err);
     if (r == -1) {
-        if (!err) err = "Error in dht_insert.";
+        if (!err) {
+            return PyErr_NoMemory();
+        }
         PyErr_SetString(PyExc_RuntimeError, err);
+        free(err);
         return NULL;
     }
     return PyLong_FromLong(r);
@@ -141,8 +147,12 @@ htInit(htObject *self, PyObject *args, PyObject *kwds) {
     self->ht = dht_open(fpath, opts, 66, &err);
 
     if (!self->ht) {
-        if (!err) err = "Error in dht_open.";
-        PyErr_SetString(PyExc_RuntimeError, err);
+        if (!err) {
+            PyErr_SetNone(PyExc_MemoryError);
+        } else {
+            PyErr_SetString(PyExc_RuntimeError, err);
+            free(err);
+        }
         return -1;
     }
     return 0;
