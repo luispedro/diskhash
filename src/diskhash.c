@@ -149,7 +149,7 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
         if (err) { *err = strdup("open call failed."); }
         return NULL;
     }
-    HashTable* rp = malloc(sizeof(HashTable));
+    HashTable* rp = (HashTable*)malloc(sizeof(HashTable));
     if (!rp) {
         if (err) { *err = strdup("Could not allocate memory."); }
         return NULL;
@@ -235,7 +235,7 @@ char random_char(void) {
 
 
 char* generate_tempname_from(const char* base) {
-    char* res = malloc(strlen(base) + 21);
+    char* res = (char*)malloc(strlen(base) + 21);
     if (!res) return NULL;
     strcpy(res, base);
     char* p = res;
@@ -262,7 +262,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     const size_t sizeof_table_elem = is_64bit(ht) ? sizeof(uint64_t) : sizeof(uint32_t);
     const size_t total_size = sizeof(HashTableHeader) + n * sizeof_table_elem + cap * node_size(ht);
 
-    HashTable* temp_ht = malloc(sizeof(HashTable));
+    HashTable* temp_ht = (HashTable*)malloc(sizeof(HashTable));
     while (1) {
         temp_ht->fname_ = generate_tempname_from(ht->fname_);
         if (!temp_ht->fname_) {
@@ -290,7 +290,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     if (temp_ht->data_ == MAP_FAILED) {
         if (err) {
             const int errorbufsize = 512;
-            *err = malloc(errorbufsize);
+            *err = (char*)malloc(errorbufsize);
             if (*err) {
                 snprintf(*err, errorbufsize, "Could not mmap() new hashtable: %s.\n", strerror(errno));
             }
