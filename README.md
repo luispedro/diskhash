@@ -7,7 +7,7 @@
 A simple disk-based hash table.
 
 The code is in C, wrappers are provided for Python, Haskell, and C++. The
-wrappers follow similar APIs with variations to accomodate the language
+wrappers follow similar APIs with variations to accommodate the language
 specificity. They all use the same underlying code, so you can open a hashtable
 created in C from Haskell, modify it within your Haskell code, and open the
 result in Python (although Python's version currently only deals with integers,
@@ -135,7 +135,7 @@ int main() {
 }
 ```
 
-## Statibility
+## Stability
 
 This is _beta_ software. It is good enough that I am using it, but the API can
 change in the future with little warning. The binary format is versioned (the
