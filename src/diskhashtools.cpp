@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <inttypes.h>
 
 #include "diskhash.hpp"
 
@@ -35,6 +36,25 @@ int main(int argc, char** argv) {
             }
             ++ix;
         }
+    } else if (mode == "lookup") {
+        if (argc < 5 || std::atol(argv[3]) < 0) {
+            std::cerr << "Usage:\n"
+                << argv[0] << " lookup FILE.dht key-size input-file\n";
+            return 1;
+        }
+        const size_t key_maxlen = std::atol(argv[3]);
+        dht::DiskHash<uint64_t> ht(argv[2], key_maxlen, dht::DHOpenRO);
+        std::string line;
+        std::ifstream finput(argv[4]);
+        while (std::getline(finput, line)) {
+            if (line.length() > key_maxlen) {
+                std::cout << "-1\n";
+            } else {
+                const uint64_t* val = ht.lookup(line.c_str());
+                std::cout << (val ? *val : -1) << '\n';
+            }
+        }
+
     } else {
         std::cerr << "Unknown subcommand: '" << mode << "'\n";
         return 1;
