@@ -4,21 +4,26 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 
-A simple disk-based hash table.
+A simple disk-based hash table (i.e., persistent hash table).
+
+It is a hashtable implemented on memory-mapped disk, so that it can be loaded
+with a single `mmap()` system call and used in memory directly (being as fast
+as an in-memory hashtable once it is loaded from disk).
 
 The code is in C, wrappers are provided for Python, Haskell, and C++. The
 wrappers follow similar APIs with variations to accommodate the language
 specificity. They all use the same underlying code, so you can open a hashtable
-created in C from Haskell, modify it within your Haskell code, and open the
-result in Python (although Python's version currently only deals with integers,
-stored as longs).
+created in C from Haskell, modify it within your Haskell code, and later open
+the result in Python (although Python's version currently only deals with
+integers, stored as longs).
 
 Cross-language functionality will work best for very simple types so that you
 can control their binary representation (64-bit integers, for example).
 
 Reading does not touch the disk representation at all and, thus, can be done on
-top of read-only files or using multiple threads. Writing or modifying values
-is, however, not thread-safe.
+top of read-only files or using multiple threads (and different processes will
+share the memory: the operating system does that for you). Writing or modifying
+values is, however, not thread-safe.
 
 ## Examples
 
@@ -89,7 +94,8 @@ main = do
 ### Python
 
 Python's interface is more limited and only integers are supported as values in
-the hash table (they are stored as 64-bit integers).
+the hash table (they are stored as 64-bit integers). It is not too hard to
+extend it to other types, but this was my only use case.
 
 ```python
 import diskhash
@@ -139,7 +145,8 @@ int main() {
 
 This is _beta_ software. It is good enough that I am using it, but the API can
 change in the future with little warning. The binary format is versioned (the
-magic string encodes its version, so changes can be detected).
+magic string encodes its version, so changes can be detected and you will get
+an error message in the future rather than some silent misbehaviour.
 
 [Automated unit testing](https://travis-ci.org/luispedro/diskhash) ensures that
 basic mistakes will not go uncaught.
@@ -155,6 +162,11 @@ basic mistakes will not go uncaught.
   "deleted" in place and recompacting when the hash table size changes or with
   an explicit `dht_gc()` call. It may also be important to add functionality to
   shrink hashtables so as to not waste disk space.
+
+- The algorithm is a rather naïve implementation of linear addression. It would
+  not be hard to switch to [robin hood
+  hashing](https://www.sebastiansylvan.com/post/robin-hood-hashing-should-be-your-default-hash-table-implementation/)
+  and this may indeed happen in the near future.
 
 License: MIT
 
