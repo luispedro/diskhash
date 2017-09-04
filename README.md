@@ -93,14 +93,14 @@ main = do
 
 ### Python
 
-Python's interface is more limited and only integers are supported as values in
-the hash table (they are stored as 64-bit integers). It is not too hard to
-extend it to other types, but this was my only use case.
+Python's interface is based on the [struct
+module](https://docs.python.org/3/library/struct.html). For example, `'ll'`
+refers to a pair of 64-bit ints (_longs_):
 
 ```python
 import diskhash
-tb = diskhash.Str2int("testing.dht", 15)
-tb.insert("key", 9)
+tb = diskhash.Diskhash("testing.dht", 15, 'll', 'rw')
+tb.insert("key", 1, 2)
 print(tb.lookup("key"))
 ```
 

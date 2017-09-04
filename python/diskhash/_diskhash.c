@@ -9,6 +9,7 @@
 typedef struct {
     PyObject_HEAD
     HashTable* ht;
+    unsigned object_size;
 } htObject;
 
 
@@ -21,10 +22,9 @@ PyObject* htLookup(htObject* self, PyObject* args) {
     if (!data) {
         Py_RETURN_NONE;
     }
-    long long r;
-    memcpy(&r, data, sizeof(r));
-    return PyLong_FromLong(r);
+    return PyMemoryView_FromMemory(data, self->object_size, PyBUF_READ);
 }
+
 PyObject* htReserve(htObject* self, PyObject* args) {
     int cap;
     if (!PyArg_ParseTuple(args, "i", &cap)) {
@@ -45,12 +45,17 @@ PyObject* htReserve(htObject* self, PyObject* args) {
 
 PyObject* htInsert(htObject* self, PyObject* args) {
     const char* k;
-    long v;
-    if (!PyArg_ParseTuple(args, "sl", &k, &v)) {
+    PyObject* v;
+    if (!PyArg_ParseTuple(args, "sO", &k, &v)) {
         return NULL;
     }
+    if (!PyMemoryView_Check(v)) {
+        PyErr_SetString(PyExc_TypeError, "Diskhash.insert expected a memory view");
+        return NULL;
+    }
+    Py_buffer* buf = PyMemoryView_GET_BUFFER(v);
     char* err;
-    int r = dht_insert(self->ht, k, &v, &err);
+    int r = dht_insert(self->ht, k, buf->buf, &err);
     if (r == -1) {
         if (!err) {
             return PyErr_NoMemory();
@@ -102,8 +107,8 @@ static PyMethodDef htMethods[] = {
 		    "\n"
 		    "key : str\n"
 		    "    Key to insert\n"
-		    "value : int\n"
-		    "    Valueto insert\n"
+		    "value : memoryview\n"
+		    "    Value to insert\n"
 		    "\n"
 		    "Returns\n"
 		    "-------\n"
@@ -135,16 +140,18 @@ htInit(htObject *self, PyObject *args, PyObject *kwds) {
     const char* fpath;
     const char* mode;
     int maxi;
-    if (!PyArg_ParseTuple(args, "sis", &fpath, &maxi, &mode)) {
+    int object_size;
+    if (!PyArg_ParseTuple(args, "siis", &fpath, &maxi, &object_size, &mode)) {
         return -1;
     }
 
     HashTableOpts opts;
     opts.key_maxlen = maxi;
-    opts.object_datalen = 8;
+    opts.object_datalen = object_size;
 
     char* err;
     self->ht = dht_open(fpath, opts, 66, &err);
+    self->object_size = object_size;
 
     if (!self->ht) {
         if (!err) {
@@ -168,7 +175,7 @@ htDealloc(htObject* ht) {
 
 static PyTypeObject htWrapperType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "diskhash.Str2int",        /* tp_name */
+    "diskhash.Diskhash",       /* tp_name */
     sizeof(htObject),          /* tp_basicsize */
     0,                         /* tp_itemsize */
     htDealloc,                 /* tp_dealloc */
@@ -189,7 +196,7 @@ static PyTypeObject htWrapperType = {
     Py_TPFLAGS_DEFAULT |
         Py_TPFLAGS_BASETYPE,   /* tp_flags */
 
-    "Disk based str -> int mapping.\n"
+    "Disk based hash table.\n"
     "\n"
     "See https://github.com/luispedro/diskhash\n", /* tp_doc */
 
@@ -234,7 +241,7 @@ PyInit__diskhash(void)
         return NULL;
 
     Py_INCREF(&htWrapperType);
-    PyModule_AddObject(m, "Str2int", (PyObject *)&htWrapperType);
+    PyModule_AddObject(m, "Diskhash", (PyObject *)&htWrapperType);
     return m;
 }
 

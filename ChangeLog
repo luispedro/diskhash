@@ -1,3 +1,6 @@
+Version 0.0.2.2 2017-09-05 by luispedro
+	* Python improvement: support generic types through struct
+
 Version 0.0.1.2 2017-06-27 by luispedro
 	* Fix cabal release: include C header files in extra-source-files
 
