@@ -15,6 +15,10 @@
 #include "diskhash.h"
 #include "primes.h"
 
+enum {
+    HT_FLAG_CAN_WRITE = 1,
+};
+
 typedef struct HashTableHeader {
     char magic[16];
     HashTableOpts opts_;
@@ -176,9 +180,11 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
             return NULL;
         }
     }
+    rp->flags_ = 0;
     const int prot = (flags == O_RDONLY) ?
                                 PROT_READ
                                 : PROT_READ|PROT_WRITE;
+    if (prot & PROT_WRITE) rp->flags_ |= HT_FLAG_CAN_WRITE;
     rp->data_ = mmap(NULL,
             rp->datasize_,
             prot,
@@ -250,6 +256,10 @@ char* generate_tempname_from(const char* base) {
 }
 
 size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
+    if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
+        if (err) { *err = strdup("Hash table is read-only. Cannot call dht_reserve."); }
+        return -EACCES;
+    }
     if (header_of(ht)->cursize_ / 2 > cap) {
         return header_of(ht)->cursize_ / 2;
     }
@@ -281,12 +291,13 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
         return 0;
     }
     temp_ht->datasize_ = total_size;
-    temp_ht->data_ = mmap(NULL, 
+    temp_ht->data_ = mmap(NULL,
             temp_ht->datasize_,
             PROT_READ|PROT_WRITE,
             MAP_SHARED,
             temp_ht->fd_,
             0);
+    temp_ht->flags_ = ht->flags_;
     if (temp_ht->data_ == MAP_FAILED) {
         if (err) {
             const int errorbufsize = 512;
@@ -358,6 +369,10 @@ void* dht_lookup(const HashTable* ht, const char* key) {
 }
 
 int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
+    if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
+        if (err) { *err = strdup("Hash table is read-only. Cannot insert."); }
+        return -EACCES;
+    }
     if (strlen(key) >= header_of(ht)->opts_.key_maxlen) {
         if (err) { *err = strdup("Key is too long"); }
         return -EINVAL;

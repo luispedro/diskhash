@@ -28,6 +28,7 @@ typedef struct HashTable {
     const char* fname_;
     void* data_;
     size_t datasize_;
+    int flags_;
 } HashTable;
 
 
@@ -107,7 +108,8 @@ void* dht_lookup(const HashTable*, const char* key);
  *         0 if the key was already present in the table. The hash table was
  *         not modified.
  *         -EINVAL : key is too long
- *	   -ENOMEM : dht_reserve failed.
+ *         -EACCES : attempted to insert into a read-only table.
+ *	       -ENOMEM : dht_reserve failed.
  *
  * The last argument is an error output argument. If it is set to a non-NULL
  * value, then the memory must be released with free(). Passing NULL is valid
@@ -135,6 +137,9 @@ int dht_insert(HashTable*, const char* key, const void* data, char** err);
  * The last argument is an error output argument. If it is set to a non-NULL
  * value, then the memory must be released with free(). Passing NULL is valid
  * (and no error message will be produced).
+ *
+ * Attempting to call this function on a read-only table will fail (return
+ * value: -EACCES).
  */
 size_t dht_reserve(HashTable*, size_t capacity, char** err);
 
