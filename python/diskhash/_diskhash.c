@@ -56,7 +56,7 @@ PyObject* htInsert(htObject* self, PyObject* args) {
     Py_buffer* buf = PyMemoryView_GET_BUFFER(v);
     char* err;
     int r = dht_insert(self->ht, k, buf->buf, &err);
-    if (r == -1) {
+    if (r < 0) {
         if (!err) {
             return PyErr_NoMemory();
         }
