@@ -99,7 +99,7 @@ refers to a pair of 64-bit ints (_longs_):
 
 ```python
 import diskhash
-tb = diskhash.Diskhash("testing.dht", 15, 'll', 'rw')
+tb = diskhash.StructHash("testing.dht", 15, 'll', 'rw')
 tb.insert("key", 1, 2)
 print(tb.lookup("key"))
 ```
