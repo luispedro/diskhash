@@ -3,6 +3,9 @@
 // License: MIT (see COPYING file)
 
 #include <Python.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "../../src/diskhash.h"
 
@@ -144,13 +147,26 @@ htInit(htObject *self, PyObject *args, PyObject *kwds) {
     if (!PyArg_ParseTuple(args, "siis", &fpath, &maxi, &object_size, &mode)) {
         return -1;
     }
+    int mode_flags = 0;
+    if (!strcmp(mode, "r")) {
+        mode_flags = O_RDONLY;
+    } else if (!strcmp(mode, "w")
+                || !strcmp(mode, "rw")
+                || !strcmp(mode, "wr")
+                || !strcmp(mode, "+")) {
+        mode_flags = O_RDWR|O_CREAT;
+    } else if (!strcmp(mode, "a")) {
+        mode_flags = O_RDWR;
+    } else if (!strcmp(mode, "x")) {
+        mode_flags = O_RDWR|O_CREAT|O_EXCL;
+    }
 
     HashTableOpts opts;
     opts.key_maxlen = maxi;
     opts.object_datalen = object_size;
 
     char* err;
-    self->ht = dht_open(fpath, opts, 66, &err);
+    self->ht = dht_open(fpath, opts, mode_flags, &err);
     self->object_size = object_size;
 
     if (!self->ht) {
