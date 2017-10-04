@@ -59,8 +59,10 @@ HashTableOpts dht_zero_opts(void);
  *
  * When opening an existing disk table, you can pass `{ 0, 0 }` (the return
  * value of `dht_zero_opts()`) as the options, in which case the values will be
- * taken from the table on disk. If you do pass values, they are checked
- * against the values on disk and it is an error if there is a mismatch.
+ * taken from the table on disk. If you do pass values > 0, they are checked
+ * against the values on disk and it is an error if there is a mismatch
+ * (passing zero to one of the option fields and not the other is supported:
+ * only the non-zero field is checked).
  *
  * The last argument is an error output argument. If it is set to a non-NULL
  * value, then the memory must be released with free(). Passing NULL is valid

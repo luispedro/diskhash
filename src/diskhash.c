@@ -179,7 +179,7 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
     const int prot = (flags == O_RDONLY) ?
                                 PROT_READ
                                 : PROT_READ|PROT_WRITE;
-    rp->data_ = mmap(NULL, 
+    rp->data_ = mmap(NULL,
             rp->datasize_,
             prot,
             MAP_SHARED,
@@ -208,9 +208,9 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
         }
         dht_free(rp);
         return 0;
-    } else if (header_of(rp)->opts_.key_maxlen != opts.key_maxlen
-                || header_of(rp)->opts_.object_datalen != opts.object_datalen) {
-        if (err) { *err = strdup("Options mismatch."); }
+    } else if ((header_of(rp)->opts_.key_maxlen != opts.key_maxlen && opts.key_maxlen != 0)
+                || (header_of(rp)->opts_.object_datalen != opts.object_datalen && opts.object_datalen != 0)) {
+        if (err) { *err = strdup("Options mismatch (diskhash table on disk was not created with the same options used to open it)."); }
         dht_free(rp);
         return 0;
     }
