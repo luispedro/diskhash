@@ -48,7 +48,7 @@ if os.environ.get('DEBUG'):
         define_macros = [('_GLIBCXX_DEBUG','1')]
 
 
-packages = setuptools.find_packages()
+packages = setuptools.find_packages('python')
 
 
 classifiers = [
