@@ -70,3 +70,38 @@ def test_insert_check_two_ints():
     del ht
 
     unlink(filename)
+
+def test_reserve():
+    # Basically, just a smoke test: reserve() should have no observable
+    # behaviour (except better performance)
+    ht = StructHash(filename, 17, 'll', 'rw')
+
+    items = [
+            ('one', (1,2)),
+            ('two', (2,3)),
+            ('three', (3,4)),
+            ('four', (4,0)),
+            ('five', (5,0)),
+            ('six', (6,0)),
+            ('seven', (7,0)),
+            ('eight', (8,0)),
+            ('nine', (9,0)),
+            ('ten', (10,0)),
+            ('eleven', (11,0)),
+            ]
+
+    ht.reserve(len(items))
+
+    for k,v in items:
+        ht.insert(k, *v)
+
+    for k,v in items:
+        assert ht.lookup(k) == v
+    del ht
+
+    ht = StructHash(filename, 17, 'll', 'r')
+    for k,v in items:
+        assert ht.lookup(k) == v
+    del ht
+
+    unlink(filename)

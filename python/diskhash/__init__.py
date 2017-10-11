@@ -40,6 +40,14 @@ class StructHash(object):
         if r is not None:
             return self.s.unpack(r)
 
+    def reserve(self, n):
+        '''Reserve space for future expansion
+
+        Pre-reserving space can make building large hashes significantly
+        faster.
+        '''
+        return self.dh.reserve(n)
+
     def size(self):
         'Return the size()'
         return self.dh.size()
