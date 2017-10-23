@@ -173,7 +173,12 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
         needs_init = 1;
         rp->datasize_ = sizeof(HashTableHeader) + 7 * sizeof(uint32_t) + 3 * node_size_opts(opts);
         if (ftruncate(fd, rp->datasize_) < 0) {
-            if (err) { *err = strdup("Could not allocate disk space."); }
+            if (err) {
+                *err = malloc(256);
+                if (*err) {
+                    strncat("Could not allocate disk space. Error: ", strerror(errno), 256);
+                }
+            }
             close(rp->fd_);
             free((char*)rp->fname_);
             free(rp);
@@ -285,7 +290,12 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
         free((char*)temp_ht->fname_);
     }
     if (ftruncate(temp_ht->fd_, total_size) < 0) {
-        if (err) { *err = strdup("Could not allocate disk space."); }
+        if (err) {
+            *err = malloc(256);
+            if (*err) {
+                strncat("Could not allocate disk space. Error: ", strerror(errno), 256);
+            }
+        }
         free((char*)temp_ht->fname_);
         free(temp_ht);
         return 0;
