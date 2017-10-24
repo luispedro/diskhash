@@ -1,4 +1,5 @@
 from ._diskhash import Diskhash as _Diskhash
+from .diskhash_version import __version__
 from struct import Struct
 
 class StructHash(object):
