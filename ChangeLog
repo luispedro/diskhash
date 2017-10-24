@@ -1,3 +1,6 @@
+Version 0.0.2.3 2017-10-24 by luispedro
+	* Fix crashes on very large hashes
+
 Version 0.0.2.2 2017-10-23 by luispedro
 	* Better error message for ftruncate failures
 
