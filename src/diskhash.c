@@ -85,6 +85,7 @@ void* hashtable_of(HashTable* ht) {
 
 static
 uint64_t get_table_at(const HashTable* ht, uint64_t ix) {
+    assert(ix < cheader_of(ht)->cursize_);
     if (is_64bit(ht)) {
         uint64_t* table = (uint64_t*)hashtable_of((HashTable*)ht);
         return table[ix];
@@ -112,7 +113,7 @@ void show_ht(const HashTable* ht) {
                 "\tslots used = %ld\n"
                 "\n", cheader_of(ht)->magic, (int)cheader_of(ht)->cursize_, cheader_of(ht)->slots_used_);
 
-    int i;
+    uint64_t i;
     for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
         fprintf(stderr, "\tTable [ %d ] = %d\n",(int)i, (int)get_table_at(ht, i));
     }
@@ -176,7 +177,7 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
             if (err) {
                 *err = malloc(256);
                 if (*err) {
-                    strncat("Could not allocate disk space. Error: ", strerror(errno), 256);
+                    snprintf(*err, 256, "Could not allocate disk space. Error: %s.", strerror(errno));
                 }
             }
             close(rp->fd_);
@@ -268,11 +269,11 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     if (header_of(ht)->cursize_ / 2 > cap) {
         return header_of(ht)->cursize_ / 2;
     }
-    const int starting_slots = cheader_of(ht)->slots_used_;
-    const int min_slots = cap * 2 + 1;
-    int i = 0;
+    const uint64_t starting_slots = cheader_of(ht)->slots_used_;
+    const uint64_t min_slots = cap * 2 + 1;
+    uint64_t i = 0;
     while (primes[i] && primes[i] < min_slots) ++i;
-    const int n = primes[i];
+    const uint64_t n = primes[i];
     cap = n / 2;
     const size_t sizeof_table_elem = is_64bit(ht) ? sizeof(uint64_t) : sizeof(uint32_t);
     const size_t total_size = sizeof(HashTableHeader) + n * sizeof_table_elem + cap * node_size(ht);
@@ -293,7 +294,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
         if (err) {
             *err = malloc(256);
             if (*err) {
-                strncat("Could not allocate disk space. Error: ", strerror(errno), 256);
+                snprintf(*err, 256, "Could not allocate disk space. Error: %s.", strerror(errno));
             }
         }
         free((char*)temp_ht->fname_);
@@ -365,8 +366,8 @@ size_t dht_size(const HashTable* ht) {
 }
 
 void* dht_lookup(const HashTable* ht, const char* key) {
-    int h = hash_key(key) % cheader_of(ht)->cursize_;
-    int i;
+    uint64_t h = hash_key(key) % cheader_of(ht)->cursize_;
+    uint64_t i;
     for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
         HashTableEntry et = entry_at(ht, h);
         if (!et.ht_key) return NULL;
@@ -391,7 +392,7 @@ int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
     if (cheader_of(ht)->cursize_ / 2 <= cheader_of(ht)->slots_used_) {
         if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1, err)) return -ENOMEM;
     }
-    int h = hash_key(key) % cheader_of(ht)->cursize_;
+    uint64_t h = hash_key(key) % cheader_of(ht)->cursize_;
     while (1) {
         HashTableEntry et = entry_at(ht, h);
         if (entry_empty(et)) break;
