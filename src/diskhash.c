@@ -14,7 +14,7 @@
 
 #include "diskhash.h"
 #include "primes.h"
-#include "rtable.c"
+#include "rtable.h"
 
 enum {
     HT_FLAG_CAN_WRITE = 1,

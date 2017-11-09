@@ -9,7 +9,7 @@ disktest: disktest.o diskhash.o
 libdht.so: diskhash.o
 	gcc -shared $(CFLAGS) -o $@ $<
 
-diskhash.o: diskhash.c diskhash.h rtable.c
+diskhash.o: diskhash.c diskhash.h rtable.h
 	gcc $(CFLAGS) -fPIC -o $@ -Wall -c diskhash.c
 
 disktest.o: disktest.c diskhash.o diskhash.h

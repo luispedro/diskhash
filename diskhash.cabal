@@ -1,5 +1,5 @@
 name:               diskhash
-version:            0.0.3.1
+version:            0.0.3.2
 synopsis:           Disk-based hash table
 description:        Disk-based hash table
 category:           Data
@@ -10,13 +10,13 @@ license-file:       COPYING
 cabal-version:      >= 1.10
 build-type:         Simple
 bug-reports:        https://github.com/luispedro/diskhash/issues
-extra-source-files: README.md ChangeLog src/diskhash.h src/primes.h
+extra-source-files: README.md ChangeLog src/diskhash.h src/primes.h src/rtable.h
 
 library
   default-language: Haskell2010
   exposed-modules: Data.DiskHash
   hs-source-dirs: haskell/
-  C-sources: haskell/Data/diskhash2.c src/diskhash.c src/rtable.c
+  C-sources: haskell/Data/diskhash2.c src/diskhash.c
   Include-dirs: src/
   ghc-options: -Wall
   build-depends:
