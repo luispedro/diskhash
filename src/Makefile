@@ -9,10 +9,10 @@ disktest: disktest.o diskhash.o
 libdht.so: diskhash.o
 	gcc -shared $(CFLAGS) -o $@ $<
 
-diskhash.o: diskhash.c diskhash.h
+diskhash.o: diskhash.c diskhash.h rtable.c
 	gcc $(CFLAGS) -fPIC -o $@ -Wall -c diskhash.c
 
-disktest.o: disktest.c diskhash.h
+disktest.o: disktest.c diskhash.o diskhash.h
 	gcc $(CFLAGS) -o $@ -Wall -c $<
 
 .PHONY: all

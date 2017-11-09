@@ -14,9 +14,11 @@
 
 #include "diskhash.h"
 #include "primes.h"
+#include "rtable.c"
 
 enum {
     HT_FLAG_CAN_WRITE = 1,
+    HT_FLAG_HASH_2 = 2,
 };
 
 typedef struct HashTableHeader {
@@ -32,12 +34,17 @@ typedef struct HashTableEntry {
 } HashTableEntry;
 
 static
-uint64_t hash_key(const char* k) {
+uint64_t hash_key(const char* k, int use_hash_2) {
     /* Taken from http://www.cse.yorku.ca/~oz/hash.html */
     uint64_t hash = 5381;
+    uint64_t next;
     for ( ; *k; ++k) {
         hash *= 33;
-        hash ^= (uint64_t)*k;
+        next = *k;
+        if (use_hash_2) {
+            next = rtable[next];
+        }
+        hash ^= next;
     }
     return hash;
 }
@@ -186,7 +193,7 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
             return NULL;
         }
     }
-    rp->flags_ = 0;
+    rp->flags_ = HT_FLAG_HASH_2;
     const int prot = (flags == O_RDONLY) ?
                                 PROT_READ
                                 : PROT_READ|PROT_WRITE;
@@ -205,21 +212,25 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
         return NULL;
     }
     if (needs_init) {
-        strcpy(header_of(rp)->magic, "DiskBasedHash10");
+        strcpy(header_of(rp)->magic, "DiskBasedHash11");
         header_of(rp)->opts_ = opts;
         header_of(rp)->cursize_ = 7;
         header_of(rp)->slots_used_ = 0;
-    } else if (strcmp(header_of(rp)->magic, "DiskBasedHash10")) {
-        char start[16];
-        strncpy(start, header_of(rp)->magic, 14);
-        start[13] = '\0';
-        if (!strcmp(start, "DiskBasedHash")) {
-            if (err) { *err = strdup("Version mismatch. This code can only load version 1.0."); }
+    } else if (strcmp(header_of(rp)->magic, "DiskBasedHash11")) {
+        if (!strcmp(header_of(rp)->magic, "DiskBasedHash10")) {
+            rp->flags_ &= ~HT_FLAG_HASH_2;
         } else {
-            if (err) { *err = strdup("No magic number found."); }
+            char start[16];
+            strncpy(start, header_of(rp)->magic, 14);
+            start[13] = '\0';
+            if (!strcmp(start, "DiskBasedHash")) {
+                if (err) { *err = strdup("Version mismatch. This code can only load version 1.0 or 1.1."); }
+            } else {
+                if (err) { *err = strdup("No magic number found."); }
+            }
+            dht_free(rp);
+            return 0;
         }
-        dht_free(rp);
-        return 0;
     } else if ((header_of(rp)->opts_.key_maxlen != opts.key_maxlen && opts.key_maxlen != 0)
                 || (header_of(rp)->opts_.object_datalen != opts.object_datalen && opts.object_datalen != 0)) {
         if (err) { *err = strdup("Options mismatch (diskhash table on disk was not created with the same options used to open it)."); }
@@ -327,6 +338,11 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     header_of(temp_ht)->cursize_ = n;
     header_of(temp_ht)->slots_used_ = 0;
 
+    if (!strcmp(header_of(temp_ht)->magic, "DiskBasedHash10")) {
+        strcpy(header_of(temp_ht)->magic, "DiskBasedHash11");
+        temp_ht->flags_ |= HT_FLAG_HASH_2;
+    }
+
     HashTableEntry et;
     for (i = 0; i < header_of(ht)->slots_used_; ++i) {
         set_table_at(ht, 0, i + 1);
@@ -366,7 +382,7 @@ size_t dht_size(const HashTable* ht) {
 }
 
 void* dht_lookup(const HashTable* ht, const char* key) {
-    uint64_t h = hash_key(key) % cheader_of(ht)->cursize_;
+    uint64_t h = hash_key(key, ht->flags_ & HT_FLAG_HASH_2) % cheader_of(ht)->cursize_;
     uint64_t i;
     for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
         HashTableEntry et = entry_at(ht, h);
@@ -392,7 +408,7 @@ int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
     if (cheader_of(ht)->cursize_ / 2 <= cheader_of(ht)->slots_used_) {
         if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1, err)) return -ENOMEM;
     }
-    uint64_t h = hash_key(key) % cheader_of(ht)->cursize_;
+    uint64_t h = hash_key(key, ht->flags_ & HT_FLAG_HASH_2) % cheader_of(ht)->cursize_;
     while (1) {
         HashTableEntry et = entry_at(ht, h);
         if (entry_empty(et)) break;
