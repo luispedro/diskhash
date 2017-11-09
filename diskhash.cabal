@@ -1,5 +1,5 @@
 name:               diskhash
-version:            0.0.3.0
+version:            0.0.3.1
 synopsis:           Disk-based hash table
 description:        Disk-based hash table
 category:           Data
@@ -16,7 +16,7 @@ library
   default-language: Haskell2010
   exposed-modules: Data.DiskHash
   hs-source-dirs: haskell/
-  C-sources: haskell/Data/diskhash2.c src/diskhash.c
+  C-sources: haskell/Data/diskhash2.c src/diskhash.c src/rtable.c
   Include-dirs: src/
   ghc-options: -Wall
   build-depends:

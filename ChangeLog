@@ -1,3 +1,6 @@
+Version 0.0.3.1 2017-11-09 by luispedro
+	* Add rtable.c to distributions
+
 Version 0.0.3.0 2017-11-09 by luispedro
 	* Better hash function
 
