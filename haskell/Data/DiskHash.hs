@@ -19,6 +19,7 @@ module Data.DiskHash
     ( DiskHashRO
     , DiskHashRW
     , htOpenRO
+    , htLoadRO
     , htOpenRW
     , withDiskHashRW
     , htLookupRO
@@ -33,6 +34,7 @@ module Data.DiskHash
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import Control.Exception (throwIO)
+import Control.Monad (when)
 import System.IO.Unsafe (unsafeDupablePerformIO)
 import Foreign.Ptr (Ptr, FunPtr, castPtr, nullPtr)
 import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, withForeignPtr, finalizeForeignPtr)
@@ -54,6 +56,7 @@ foreign import ccall "dht_lookup" c_dht_lookup :: Ptr () -> CString -> IO (Ptr (
 foreign import ccall "dht_reserve" c_dht_reserve :: Ptr () -> CInt -> Ptr CString -> IO ()
 foreign import ccall "dht_insert" c_dht_insert :: Ptr () -> CString -> Ptr () -> Ptr CString -> IO CInt
 foreign import ccall "dht_size" c_dht_size :: Ptr () -> IO CSize
+foreign import ccall "dht_load_to_memory" c_dht_load_to_memory :: Ptr () -> Ptr CString -> IO CInt
 foreign import ccall "&dht_free" c_dht_free_p :: FunPtr (Ptr () -> IO ())
 
 -- | Internal function to handle error message interface
@@ -76,7 +79,7 @@ htOpenRW :: forall a. (Storable a) => FilePath
                                         -> Int
                                         -- ^ maximum key size
                                         -> IO (DiskHashRW a)
-htOpenRW fpath maxk = DiskHashRW <$> open' (undefined :: a) fpath maxk 66
+htOpenRW fpath maxk = DiskHashRW <$> open' (undefined :: a) fpath maxk 66 False
 
 -- | open a hash table in read-only mode
 --
@@ -88,10 +91,24 @@ htOpenRO :: forall a. (Storable a) => FilePath
                                         -> Int
                                         -- ^ maximum key size
                                         -> IO (DiskHashRO a)
-htOpenRO fpath maxk = DiskHashRO <$> open' (undefined :: a) fpath maxk 0
+htOpenRO fpath maxk = DiskHashRO <$> open' (undefined :: a) fpath maxk 0 False
 
-open' :: forall a. (Storable a) => a -> FilePath -> Int -> CInt -> IO HashTable_t
-open' unused fpath maxk flags = B.useAsCString (B8.pack fpath) $ \fpath' ->
+-- | open a hash table in read-only mode and load it into memory
+--
+-- The 'maxk' argument can be 0, in which case the value of the maximum key
+-- will be taken from the disk file. If not zero, then it is checked against
+-- the value on disk and an exception is raised if there is  a mismatch.
+--
+-- @since 0.0.4.0
+htLoadRO :: forall a. (Storable a) => FilePath
+                                        -- ^ file path
+                                        -> Int
+                                        -- ^ maximum key size
+                                        -> IO (DiskHashRO a)
+htLoadRO fpath maxk = DiskHashRO <$> open' (undefined :: a) fpath maxk 0 True
+
+open' :: forall a. (Storable a) => a -> FilePath -> Int -> CInt -> Bool -> IO HashTable_t
+open' unused fpath maxk flags load = B.useAsCString (B8.pack fpath) $ \fpath' ->
     alloca $ \err -> do
         poke err nullPtr
         ht <- c_dht_open2 fpath' (fromIntegral maxk) (fromIntegral $ sizeOf unused) flags err
@@ -99,7 +116,12 @@ open' unused fpath maxk flags = B.useAsCString (B8.pack fpath) $ \fpath' ->
             then do
                 errmsg <- getError err
                 throwIO $ userError ("Could not open hash table: " ++ show errmsg)
-            else
+            else do
+                when load $ do
+                    e <- c_dht_load_to_memory ht err
+                    when (e == 2) $ do
+                        errmsg <- getError err
+                        throwIO $ userError ("Could not load hash table into memory: " ++ show errmsg)
                 newForeignPtr c_dht_free_p ht
 
 -- | Open a hash table in read-write mode and pass it to an action

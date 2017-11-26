@@ -1,9 +1,11 @@
 from diskhash import Str2int
-from os import unlink
+from os import unlink, path
 
 filename = 'testing.dht'
 
 def test_insert_check():
+    if path.exists(filename):
+        unlink(filename)
     ht = Str2int(filename, 17, 'rw')
 
     assert ht.size() == 0

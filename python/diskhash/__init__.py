@@ -3,15 +3,16 @@ from .diskhash_version import __version__
 from struct import Struct
 
 class StructHash(object):
-    def __init__(self, fname, keysize, structformat, mode):
+    def __init__(self, fname, keysize, structformat, mode, load=False):
         '''
         fname : file name
         keysize : max key size
         structformat : same argument as in the standard Python struct.Struct constructor
         mode: 'r' or 'rw'
+        load: whether to load the hash table into memory
         '''
         self.s = Struct(structformat)
-        self.dh = _Diskhash(fname, keysize, self.s.size, mode)
+        self.dh = _Diskhash(fname, keysize, self.s.size, mode, int(load))
 
     def insert(self, key, *value):
         '''Insert a value into the hash

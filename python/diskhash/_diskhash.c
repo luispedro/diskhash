@@ -75,10 +75,6 @@ PyObject* htLen(htObject* self, PyObject* args) {
     return PyLong_FromLong(n);
 }
 
-
-
-
-
 static PyMethodDef htMethods[] = {
     { "lookup", (PyCFunction)htLookup, METH_VARARGS,
 		    "Lookup a value.\n"
@@ -144,7 +140,8 @@ htInit(htObject *self, PyObject *args, PyObject *kwds) {
     const char* mode;
     int maxi;
     int object_size;
-    if (!PyArg_ParseTuple(args, "siis", &fpath, &maxi, &object_size, &mode)) {
+    int load;
+    if (!PyArg_ParseTuple(args, "siisi", &fpath, &maxi, &object_size, &mode, &load)) {
         return -1;
     }
     int mode_flags = 0;
@@ -177,6 +174,13 @@ htInit(htObject *self, PyObject *args, PyObject *kwds) {
             free(err);
         }
         return -1;
+    }
+    if (load) {
+        int e = dht_load_to_memory(self->ht, &err);
+        if (e == 2) {
+            PyErr_SetString(PyExc_RuntimeError, err);
+            return -1;
+        }
     }
     return 0;
 }

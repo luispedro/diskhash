@@ -19,6 +19,7 @@
 enum {
     HT_FLAG_CAN_WRITE = 1,
     HT_FLAG_HASH_2 = 2,
+    HT_FLAG_IS_LOADED = 4,
 };
 
 typedef struct HashTableHeader {
@@ -240,8 +241,39 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
     return rp;
 }
 
-void dht_free(HashTable* ht) {
+int dht_load_to_memory(HashTable* ht, char** err) {
+    if (ht->flags_ & HT_FLAG_CAN_WRITE) {
+        if (err) *err = "Cannot call dht_load_to_memory on a read/write Diskhash";
+        return 1;
+    }
+    if (ht->flags_ & HT_FLAG_IS_LOADED) {
+        if (err) *err = "dht_load_to_memory had already been called.";
+        return 1;
+    }
     munmap(ht->data_, ht->datasize_);
+    ht->data_ = malloc(ht->datasize_);
+    if (ht->data_) {
+        size_t n = read(ht->fd_, ht->data_, ht->datasize_);
+        if (n == ht->datasize_) return 0;
+        else if (err) *err = "dht_load_to_memory: could not read data from file";
+    } else {
+        if (err) *err = "dht_load_to_memory: could not allocate memory.";
+    }
+    free(ht->data_);
+    fsync(ht->fd_);
+    close(ht->fd_);
+    free((char*)ht->fname_);
+    free(ht);
+    return 2;
+
+}
+
+void dht_free(HashTable* ht) {
+    if (ht->flags_ & HT_FLAG_IS_LOADED) {
+        free(ht->data_);
+    } else {
+        munmap(ht->data_, ht->datasize_);
+    }
     fsync(ht->fd_);
     close(ht->fd_);
     free((char*)ht->fname_);

@@ -59,6 +59,17 @@ case_open_close = do
     assertEqual "Lookup" (Just (9 :: Int64)) (htLookupRO "key" ht)
     removeFileIfExists outname
 
+case_open_close_load = do
+    withDiskHashRW outname 15 $ \ht -> do
+        s <- htSizeRW ht
+        assertEqual "new table has size 0" s 0
+        inserted <- htInsert "key" (9 :: Int64) ht
+        assertBool "inserted should have return True" inserted
+    ht <- htLoadRO outname 15
+    assertEqual "read-only table after reopen (load)" (htSizeRO ht) 1
+    assertEqual "Lookup" (Just (9 :: Int64)) (htLookupRO "key" ht)
+    removeFileIfExists outname
+
 -- prop_insert_find :: [(String, Int64)] -> IO Bool
 prop_insert_find args = ioProperty $ do
     let args' = normArgs args

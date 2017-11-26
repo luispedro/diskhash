@@ -73,6 +73,18 @@ HashTableOpts dht_zero_opts(void);
  */
 HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char**);
 
+/** Load table into memory
+ *
+ * Return:
+ *   0 : success
+ *
+ *   1 : impossible operation: nothing has been done. Attempting to load a
+ *   previously loaded table or a read/write table is impossible.
+ *
+ *   2 : error: the HashTable has been freed and must not be used.
+ */
+int dht_load_to_memory(HashTable*, char**);
+
 /** Lookup a value by key
  *
  * If the hash table was opened in read-write mode, then the memory returned
