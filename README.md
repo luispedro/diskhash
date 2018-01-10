@@ -14,11 +14,10 @@ The code is in C, wrappers are provided for Python, Haskell, and C++. The
 wrappers follow similar APIs with variations to accommodate the language
 specificity. They all use the same underlying code, so you can open a hashtable
 created in C from Haskell, modify it within your Haskell code, and later open
-the result in Python (although Python's version currently only deals with
-integers, stored as longs).
+the result in Python.
 
-Cross-language functionality will work best for very simple types so that you
-can control their binary representation (64-bit integers, for example).
+Cross-language functionality will only work for simple types where you can
+control their binary representation (64-bit integers, for example).
 
 Reading does not touch the disk representation at all and, thus, can be done on
 top of read-only files or using multiple threads (and different processes will
@@ -61,10 +60,15 @@ int main(void) {
 }
 ```
 
+The C API relies on error codes and error strings (the `&err` argument above).
+The header file has [decent
+documentation](https://github.com/luispedro/diskhash/blob/master/src/diskhash.h).
+
 ### Haskell
 
 In Haskell, you have different types/functions for read-write and read-only
-hashtables.
+hashtables. Read-write operations are `IO` operations, read-only hashtables are
+pure.
 
 Read write example:
 
