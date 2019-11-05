@@ -3,8 +3,9 @@
 module Main where
 
 import           Test.Framework.TH
-import           Test.HUnit
-import           Test.QuickCheck.Property
+import           Test.HUnit (assertEqual, assertBool)
+import           Test.QuickCheck (ASCIIString(..))
+import           Test.QuickCheck.Property (Property, ioProperty)
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
 
@@ -14,7 +15,7 @@ import           Control.Arrow (first)
 import           Control.Monad (forM, forM_)
 import           Control.Exception (throwIO)
 import           System.IO.Error (isDoesNotExistError, catchIOError)
-import           System.Directory (doesFileExist, removeFile)
+import           System.Directory (removeFile)
 import           Data.Int
 
 import Data.DiskHash
@@ -70,22 +71,22 @@ case_open_close_load = do
     assertEqual "Lookup" (Just (9 :: Int64)) (htLookupRO "key" ht)
     removeFileIfExists outname
 
--- prop_insert_find :: [(String, Int64)] -> IO Bool
+prop_insert_find :: [(ASCIIString, Int64)] -> Property
 prop_insert_find args = ioProperty $ do
     let args' = normArgs args
     found <- withDiskHashRW outname 15 $ \ht -> do
         forM_ args' $ \(k,val) -> htInsert k val ht
         forM args' $ \(k, val) -> do
             v <- htLookupRW k ht
-            return $ v == Just val
+            return $! v == Just val
     removeFileIfExists outname
     return $! and found
 
 
-normArgs :: [(String, Int64)] -> [(B.ByteString, Int64)]
+normArgs :: [(ASCIIString, Int64)] -> [(B.ByteString, Int64)]
 normArgs = normArgs' [] . map (first normKey)
     where
-        normKey = B8.pack . (filter (/= '\0'))
+        normKey = B8.pack . (filter (/= '\0')) . getASCIIString
         normArgs' r [] = r
         normArgs' r (x@(k,_):xs)
             | k `elem` (map fst r) = normArgs' r xs
