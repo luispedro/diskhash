@@ -1,5 +1,5 @@
 name:               diskhash
-version:            0.0.4.0
+version:            0.0.4.1
 synopsis:           Disk-based hash table
 description:        Disk-based hash table
 category:           Data
