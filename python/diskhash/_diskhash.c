@@ -114,7 +114,7 @@ static PyMethodDef htMethods[] = {
 		    "r : int\n"
 		    "   1 if object was inserted, 0 if not.\n" },
 
-    { "size", (PyCFunction)htLen, METH_VARARGS, "",
+    { "size", (PyCFunction)htLen, METH_VARARGS,
 		    "Return number of elements." },
 
     {NULL}  /* Sentinel */
@@ -187,7 +187,8 @@ htInit(htObject *self, PyObject *args, PyObject *kwds) {
 
 
 static void
-htDealloc(htObject* ht) {
+htDealloc(PyObject* obj) {
+    htObject* ht = (htObject*)obj;
     if (ht->ht) dht_free(ht->ht);
 }
 
