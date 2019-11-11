@@ -1,3 +1,6 @@
+Version 0.0.4.2 2019-11-11 by luispedro
+	* Fix non-ASCII keys
+
 Version 0.0.4.1 2019-11-05 by luispedro
 	* Fix Python extension compilation
 
