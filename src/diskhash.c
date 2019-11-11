@@ -37,11 +37,12 @@ typedef struct HashTableEntry {
 static
 uint64_t hash_key(const char* k, int use_hash_2) {
     /* Taken from http://www.cse.yorku.ca/~oz/hash.html */
+    const unsigned char* ku = (const unsigned char*)k;
     uint64_t hash = 5381;
     uint64_t next;
-    for ( ; *k; ++k) {
+    for ( ; *ku; ++ku) {
         hash *= 33;
-        next = *k;
+        next = *ku;
         if (use_hash_2) {
             next = rtable[next];
         }
