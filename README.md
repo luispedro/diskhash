@@ -103,8 +103,15 @@ refers to a pair of 64-bit ints (_longs_):
 
 ```python
 import diskhash
-tb = diskhash.StructHash("testing.dht", 15, 'll', 'rw')
-tb.insert("key", 1, 2)
+
+tb = diskhash.StructHash(
+    fname="testing.dht", 
+    keysize=15, 
+    structformat='ll',  # store pairs of longs
+    mode='rw',
+)
+value = [1, 2]  # pair of longs
+tb.insert("key", *value)
 print(tb.lookup("key"))
 ```
 
