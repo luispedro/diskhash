@@ -103,6 +103,7 @@ refers to a pair of 64-bit ints (_longs_):
 
 ```python
 import diskhash
+
 tb = diskhash.StructHash(
     fname="testing.dht", 
     keysize=15, 
