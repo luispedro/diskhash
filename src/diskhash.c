@@ -20,6 +20,7 @@ enum {
     HT_FLAG_CAN_WRITE = 1,
     HT_FLAG_HASH_2 = 2,
     HT_FLAG_IS_LOADED = 4,
+    HT_FLAG_FIX_KEY_LEN = 8,
 };
 
 typedef struct HashTableHeader {
@@ -35,20 +36,46 @@ typedef struct HashTableEntry {
 } HashTableEntry;
 
 static
-uint64_t hash_key(const char* k, int use_hash_2) {
-    /* Taken from http://www.cse.yorku.ca/~oz/hash.html */
-    const unsigned char* ku = (const unsigned char*)k;
-    uint64_t hash = 5381;
-    uint64_t next;
-    for ( ; *ku; ++ku) {
-        hash *= 33;
-        next = *ku;
-        if (use_hash_2) {
-            next = rtable[next];
-        }
-        hash ^= next;
+uint64_t hash_key(const char* key, size_t len) {
+    const uint32_t seed = 0xe17a1465;
+    const uint64_t m = 0xc6a4a7935bd1e995;
+    const int r = 47;
+
+    uint64_t h = seed ^ (len * m);
+
+    const uint64_t * data = (const uint64_t *)key;
+    const uint64_t * end = data + (len/8);
+
+    uint64_t k;
+    while(data != end) {
+        k = *data++;
+
+        k *= m;
+        k ^= k >> r;
+        k *= m;
+
+        h ^= k;
+        h *= m;
     }
-    return hash;
+
+    const unsigned char * data2 = (const unsigned char*)data;
+
+    switch(len & 7) {
+    case 7: h ^= (uint64_t)data2[6] << 48;
+    case 6: h ^= (uint64_t)data2[5] << 40;
+    case 5: h ^= (uint64_t)data2[4] << 32;
+    case 4: h ^= (uint64_t)data2[3] << 24;
+    case 3: h ^= (uint64_t)data2[2] << 16;
+    case 2: h ^= (uint64_t)data2[1] << 8;
+    case 1: h ^= (uint64_t)data2[0];
+        h *= m;
+    };
+
+    h ^= h >> r;
+    h *= m;
+    h ^= h >> r;
+
+    return h;
 }
 
 inline static
@@ -74,7 +101,7 @@ int is_64bit(const HashTable* ht) {
 
 inline static
 size_t node_size_opts(HashTableOpts opts) {
-    return aligned_size(opts.key_maxlen + 1) + aligned_size(opts.object_datalen);
+    return aligned_size(opts.key_maxlen) + aligned_size(opts.object_datalen);
 }
 
 inline static
@@ -144,7 +171,7 @@ HashTableEntry entry_at(const HashTable* ht, size_t ix) {
                             + sizeof(HashTableHeader)
                             + cheader_of(ht)->cursize_ * sizeof_table_elem;
     r.ht_key = node_data + ix * node_size(ht);
-    r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
+    r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen) );
     return r;
 }
 
@@ -380,7 +407,11 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     for (i = 0; i < header_of(ht)->slots_used_; ++i) {
         set_table_at(ht, 0, i + 1);
         et = entry_at(ht, 0);
-        dht_insert(temp_ht, et.ht_key, et.ht_data, NULL);
+        if(ht->flags_ & HT_FLAG_FIX_KEY_LEN) {
+            dht_insert(temp_ht, et.ht_key, header_of(ht)->opts_.key_maxlen, et.ht_data, NULL);
+        } else {
+            dht_insert(temp_ht, et.ht_key+1, (size_t)et.ht_key[0], et.ht_data, NULL);
+        }
     }
 
     const char* temp_fname = strdup(temp_ht->fname_);
@@ -414,13 +445,21 @@ size_t dht_size(const HashTable* ht) {
     return cheader_of(ht)->slots_used_;
 }
 
-void* dht_lookup(const HashTable* ht, const char* key) {
-    uint64_t h = hash_key(key, ht->flags_ & HT_FLAG_HASH_2) % cheader_of(ht)->cursize_;
+void* dht_lookup(const HashTable* ht, const char* key, size_t keylen) {
+    if(ht->flags_ & HT_FLAG_FIX_KEY_LEN) {
+        assert(keylen == header_of(ht)->opts_.key_maxlen);
+    }
+    uint64_t h = hash_key(key, keylen) % cheader_of(ht)->cursize_;
     uint64_t i;
     for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
         HashTableEntry et = entry_at(ht, h);
         if (!et.ht_key) return NULL;
-        if (!strcmp(et.ht_key, key)) return et.ht_data;
+        if(ht->flags_ & HT_FLAG_FIX_KEY_LEN) {
+            if (!memcmp(et.ht_key, key, keylen)) return et.ht_data;
+        } else {
+            if((size_t)et.ht_key[0] == keylen &&
+               !memcmp(et.ht_key+1, key, keylen)) return et.ht_data;
+        }
         ++h;
         if (h == cheader_of(ht)->cursize_) h = 0;
     }
@@ -428,24 +467,27 @@ void* dht_lookup(const HashTable* ht, const char* key) {
     return NULL;
 }
 
-int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
+int dht_insert(HashTable* ht, const char* key, size_t keylen, const void* data, char** err) {
     if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
         if (err) { *err = strdup("Hash table is read-only. Cannot insert."); }
         return -EACCES;
     }
-    if (strlen(key) >= header_of(ht)->opts_.key_maxlen) {
+    if(ht->flags_ & HT_FLAG_FIX_KEY_LEN) {
+        assert(keylen == header_of(ht)->opts_.key_maxlen);
+    } else if (keylen >= header_of(ht)->opts_.key_maxlen) {
         if (err) { *err = strdup("Key is too long"); }
         return -EINVAL;
     }
+
     /* Max load is 50% */
     if (cheader_of(ht)->cursize_ / 2 <= cheader_of(ht)->slots_used_) {
         if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1, err)) return -ENOMEM;
     }
-    uint64_t h = hash_key(key, ht->flags_ & HT_FLAG_HASH_2) % cheader_of(ht)->cursize_;
+    uint64_t h = hash_key(key, keylen) % cheader_of(ht)->cursize_;
     while (1) {
         HashTableEntry et = entry_at(ht, h);
         if (entry_empty(et)) break;
-        if (!strcmp(et.ht_key, key)) {
+        if (!memcmp(et.ht_key, key, keylen)) {
             return 0;
         }
         ++h;
@@ -457,9 +499,13 @@ int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
     ++header_of(ht)->slots_used_;
     HashTableEntry et = entry_at(ht, h);
 
-    strcpy((char*)et.ht_key, key);
+    if(ht->flags_ & HT_FLAG_FIX_KEY_LEN) {
+        memcpy((char*)et.ht_key, key, keylen);
+    } else {
+        *(char*)et.ht_key = keylen;
+        memcpy((char*)et.ht_key+1, key, keylen);
+    }
     memcpy(et.ht_data, data, cheader_of(ht)->opts_.object_datalen);
 
     return 1;
 }
-

@@ -98,7 +98,7 @@ int dht_load_to_memory(HashTable*, char**);
  * are given whenever writing is performed. Similarly, if you write to the
  * output of this function (the ht_data field), no guarantees are given.
  */
-void* dht_lookup(const HashTable*, const char* key);
+void* dht_lookup(const HashTable*, const char* key, size_t keylen);
 
 /** Insert a value.
  *
@@ -129,7 +129,7 @@ void* dht_lookup(const HashTable*, const char* key);
  * will mean an out-of-memory error (when dht fails to allocate memory, it does
  * not try to allocate memory for an error message).
  */
-int dht_insert(HashTable*, const char* key, const void* data, char** err);
+int dht_insert(HashTable*, const char* key, size_t keylen, const void* data, char** err);
 
 /** Preallocate memory for the table.
  *

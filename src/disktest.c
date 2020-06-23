@@ -10,7 +10,7 @@
 
 typedef int64_t data_t;
 int dht_ismember(HashTable* ht, const char* k) {
-    return dht_lookup(ht, k) != NULL;
+    return dht_lookup(ht, k, strlen(k)) != NULL;
 }
 
 void chomp(char* p) {
@@ -23,10 +23,9 @@ void chomp(char* p) {
 }
 
 data_t dht_lookup_data_or(HashTable* ht, const char* k, data_t def) {
-    void* data = dht_lookup(ht, k);
-    if (!data) return def;
-    memcpy(&def, data, sizeof(def));
-    return def;
+    void* data = dht_lookup(ht, k, strlen(k));
+    if (!data) return -1;
+    return *(data_t*)data;
 }
 int main() {
     HashTableOpts opts;
@@ -44,8 +43,8 @@ int main() {
     data_t i = 9;
     while (fgets(buffer, 255, stdin)) {
         chomp(buffer);
-        printf("Looking for %s: %ld\n", buffer, dht_lookup_data_or(ht, buffer, -1));
-        int v = dht_insert(ht, buffer, &i, &err);
+        printf("Looking for %s: %ld\n", buffer, dht_lookup_data_or(ht, buffer, i));
+        int v = dht_insert(ht, buffer, strlen(buffer), &i, &err);
         if (v < 1) {
             printf("dht_insert returned %d; %s.\n", v, err);
             free(err);
