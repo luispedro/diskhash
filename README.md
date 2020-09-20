@@ -1,6 +1,6 @@
 # Disk-based hashtable
 
-[![Travis](https://api.travis-ci.org/luispedro/diskhash.png)](https://travis-ci.org/luispedro/diskhash)
+[![Travis](https://api.travis-ci.com/luispedro/diskhash.png)](https://travis-ci.com/luispedro/diskhash)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 
@@ -159,7 +159,7 @@ change in the future with little warning. The binary format is versioned (the
 magic string encodes its version, so changes can be detected and you will get
 an error message in the future rather than some silent misbehaviour.
 
-[Automated unit testing](https://travis-ci.org/luispedro/diskhash) ensures that
+[Automated unit testing](https://travis-ci.com/luispedro/diskhash) ensures that
 basic mistakes will not go uncaught.
 
 ## Limitations
