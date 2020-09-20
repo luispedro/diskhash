@@ -17,7 +17,7 @@ enum OpenMode { DHOpenRO, DHOpenRW, DHOpenRWNoCreate };
 
 template <typename T>
 struct DiskHash {
-    static_assert(std::is_pod<T>::value,
+    static_assert(std::is_trivially_copyable<T>::value,
             "DiskHash only works for POD (plain old data) types that can be mempcy()ed around");
     public:
         /***
