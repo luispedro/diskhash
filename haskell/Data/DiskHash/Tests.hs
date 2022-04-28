@@ -2,12 +2,10 @@
 
 module Main where
 
-import           Test.Framework.TH
-import           Test.HUnit (assertEqual, assertBool)
-import           Test.QuickCheck (ASCIIString(..))
-import           Test.QuickCheck.Property (Property, ioProperty)
-import           Test.Framework.Providers.HUnit
-import           Test.Framework.Providers.QuickCheck2
+import           Test.Tasty.HUnit
+import           Test.Tasty.TH
+import           Test.Tasty.QuickCheck
+
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8

@@ -36,12 +36,10 @@ Test-Suite diskhashtest
     bytestring == 0.10.*,
     directory,
     diskhash,
-    HUnit,
-    QuickCheck,
-    test-framework,
-    test-framework-hunit,
-    test-framework-quickcheck2,
-    test-framework-th
+    tasty,
+    tasty-quickcheck,
+    tasty-th,
+    tasty-hunit
 
 source-repository head
   type: git
