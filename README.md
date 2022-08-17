@@ -1,6 +1,7 @@
 # Disk-based hashtable
 
-[![Travis](https://api.travis-ci.com/luispedro/diskhash.png)](https://travis-ci.com/luispedro/diskhash)
+[![Build & test (Haskell)](https://github.com/luispedro/diskhash/actions/workflows/build_haskell_w_nix.yml/badge.svg)](https://github.com/luispedro/diskhash/actions/workflows/build_haskell_w_nix.yml)
+[![Build & test (Python)](https://github.com/luispedro/diskhash/actions/workflows/build_python_w_nix.yml/badge.svg)](https://github.com/luispedro/diskhash/actions/workflows/build_python_w_nix.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 
