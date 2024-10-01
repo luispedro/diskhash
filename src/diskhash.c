@@ -383,7 +383,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
         dht_insert(temp_ht, et.ht_key, et.ht_data, NULL);
     }
 
-    const char* temp_fname = strdup(temp_ht->fname_);
+    char* temp_fname = strdup(temp_ht->fname_);
     if (!temp_fname) {
         if (err) { *err = NULL; }
         unlink(temp_ht->fname_);
