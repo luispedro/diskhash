@@ -3,8 +3,8 @@ let
   sources = {
     haskellNix = builtins.fetchTarball {
       name = "haskell-nix-snap";
-      url = "https://github.com/input-output-hk/haskell.nix/archive/17e5f35d56c57b20ba2397010fcd4032fb6acc2b.tar.gz";
-      sha256 = "0b3pwrib289bhidv1q27k6k53zwyahdffi2ynww19qnviqwlm21a";
+      url = "https://github.com/input-output-hk/haskell.nix/archive/c689f01730e5b6c6c16d3947a15689569844c38c.tar.gz";
+      sha256 = "09lw2419a5dd9g0ja31hjfqf6d4bzcgr5mrqx0vrvlksmp7a1kzk";
     };
   };
 
